@@ -1,0 +1,28 @@
+{
+  "name": "plainjs",
+  "version": "0.0.1",
+  "description": "Powerfull simple javascript framework",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oberset/plainjs.git"
+  },
+  "keywords": [
+    "javascript"
+  ],
+  "author": "Yury Oberyukhtin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/oberset/plainjs/issues"
+  },
+  "homepage": "https://github.com/oberset/plainjs#readme",
+  "devDependencies": {
+    "babel-core": "^6.5.2",
+    "babel-loader": "^6.2.3",
+    "babel-polyfill": "^6.7.4",
+    "babel-preset-es2015": "^6.5.0",
+    "babel-preset-stage-0": "^6.5.0",
+    "html-loader": "^0.4.3",
+    "webpack": "^1.12.13"
+  }
+}
