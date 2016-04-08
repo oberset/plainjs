@@ -32,7 +32,7 @@ export default class PlainDom {
 
     addContent(node, content) {
         node.appendChild(
-            DOC.createTextNode(content.toString())
+            DOC.createTextNode('' + content)
         );
     }
 

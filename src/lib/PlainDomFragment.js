@@ -1,4 +1,5 @@
 import PlainDom from './PlainDom';
+import PlainObserver from './PlainObserver';
 
 export default class PlainDomFragment extends PlainDom {
 
@@ -17,14 +18,19 @@ export default class PlainDomFragment extends PlainDom {
 
     static render(Component, template, node) {
         let component = new Component();
-        let data = component.getData();
         let fragment = new PlainDomFragment(
             this.createTemplateFromString(template)
         );
-        fragment.updateData(data);
-        node.appendChild(fragment.node);
+        let data = component.getData();
 
-        return fragment;
+        PlainObserver.register(data, fragment);
+        PlainObserver.update(data);
+
+        if (fragment.node) {
+            component.onBeforeMount(node);
+            node.appendChild(fragment.node);
+            component.onMount(node);
+        }
     }
 
     constructor(template) {
@@ -35,7 +41,7 @@ export default class PlainDomFragment extends PlainDom {
         this.data = {};
     }
 
-    updateData(data) {
+    update(data) {
         this.data = Object.assign({}, this.data, data);
 
         if (null === this.fragment) {
@@ -141,7 +147,14 @@ export default class PlainDomFragment extends PlainDom {
     }
 
     updateFragment() {
+        console.log('!! Update');
+        console.log(this.data);
 
+        let parent = this.node.parentNode;
+        parent.innerHTML = '';
+
+        this.node = this.createFragmentNode();
+        parent.appendChild(this.node);
     }
 
 }

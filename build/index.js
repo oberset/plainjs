@@ -50,11 +50,11 @@
 
 	var _PlainDomFragment2 = _interopRequireDefault(_PlainDomFragment);
 
-	var _page = __webpack_require__(3);
+	var _page = __webpack_require__(4);
 
 	var _page2 = _interopRequireDefault(_page);
 
-	var _page3 = __webpack_require__(7);
+	var _page3 = __webpack_require__(8);
 
 	var _page4 = _interopRequireDefault(_page3);
 
@@ -80,6 +80,10 @@
 
 	var _PlainDom3 = _interopRequireDefault(_PlainDom2);
 
+	var _PlainObserver = __webpack_require__(3);
+
+	var _PlainObserver2 = _interopRequireDefault(_PlainObserver);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -95,12 +99,17 @@
 	        key: 'render',
 	        value: function render(Component, template, node) {
 	            var component = new Component();
-	            var data = component.getData();
 	            var fragment = new PlainDomFragment(this.createTemplateFromString(template));
-	            fragment.updateData(data);
-	            node.appendChild(fragment.node);
+	            var data = component.getData();
 
-	            return fragment;
+	            _PlainObserver2.default.register(data, fragment);
+	            _PlainObserver2.default.update(data);
+
+	            if (fragment.node) {
+	                component.onBeforeMount(node);
+	                node.appendChild(fragment.node);
+	                component.onMount(node);
+	            }
 	        }
 	    }]);
 
@@ -117,8 +126,8 @@
 	    }
 
 	    _createClass(PlainDomFragment, [{
-	        key: 'updateData',
-	        value: function updateData(data) {
+	        key: 'update',
+	        value: function update(data) {
 	            this.data = Object.assign({}, this.data, data);
 
 	            if (null === this.fragment) {
@@ -249,7 +258,16 @@
 	        }
 	    }, {
 	        key: 'updateFragment',
-	        value: function updateFragment() {}
+	        value: function updateFragment() {
+	            console.log('!! Update');
+	            console.log(this.data);
+
+	            var parent = this.node.parentNode;
+	            parent.innerHTML = '';
+
+	            this.node = this.createFragmentNode();
+	            parent.appendChild(this.node);
+	        }
 	    }]);
 
 	    return PlainDomFragment;
@@ -330,7 +348,7 @@
 	    }, {
 	        key: 'addContent',
 	        value: function addContent(node, content) {
-	            node.appendChild(DOC.createTextNode(content.toString()));
+	            node.appendChild(DOC.createTextNode('' + content));
 	        }
 	    }, {
 	        key: 'getDomListIterator',
@@ -367,6 +385,52 @@
 
 /***/ },
 /* 3 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var PlainObserver = function () {
+	    function PlainObserver() {
+	        _classCallCheck(this, PlainObserver);
+	    }
+
+	    _createClass(PlainObserver, null, [{
+	        key: "register",
+	        value: function register(object, listener) {
+	            var listeners = this.list.get(object);
+	            if (!Array.isArray(listeners)) {
+	                listeners = [listener];
+	            } else {
+	                listeners.push(listener);
+	            }
+	            this.list.set(object, listeners);
+	        }
+	    }, {
+	        key: "update",
+	        value: function update(object) {
+	            var listeners = this.list.get(object);
+	            listeners && listeners.forEach(function (listener) {
+	                listener.update(object);
+	            });
+	        }
+	    }]);
+
+	    return PlainObserver;
+	}();
+
+	PlainObserver.list = new WeakMap();
+	exports.default = PlainObserver;
+
+/***/ },
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -377,15 +441,15 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _Plain2 = __webpack_require__(4);
+	var _Plain2 = __webpack_require__(5);
 
 	var _Plain3 = _interopRequireDefault(_Plain2);
 
-	var _button = __webpack_require__(5);
+	var _button = __webpack_require__(6);
 
 	var _button2 = _interopRequireDefault(_button);
 
-	var _button3 = __webpack_require__(6);
+	var _button3 = __webpack_require__(7);
 
 	var _button4 = _interopRequireDefault(_button3);
 
@@ -405,23 +469,30 @@
 
 	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Page).call(this));
 
-	        _this.data = {
-	            button: {
-	                component: _button2.default,
-	                template: _button4.default
-	            },
+	        _this.onClick = function () {
+	            _this.data.counter++;
+	            _this.update();
+	        };
+
+	        _this.setData({
+	            counter: 1,
 	            title: 'Page title',
 	            header: 'Page header',
 	            body: 'Page content here.',
 	            footer: 'Page footer'
-	        };
+	        });
 	        return _this;
 	    }
 
 	    _createClass(Page, [{
 	        key: 'onMount',
-	        value: function onMount() {
+	        value: function onMount(node) {
 	            console.log('!!! Mounted Page');
+	            node.addEventListener('click', this.onClick);
+
+	            this.setData({
+	                header: 'Update page header!!!'
+	            });
 	        }
 	    }]);
 
@@ -431,7 +502,7 @@
 	exports.default = Page;
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -446,6 +517,10 @@
 
 	var _PlainDom2 = _interopRequireDefault(_PlainDom);
 
+	var _PlainObserver = __webpack_require__(3);
+
+	var _PlainObserver2 = _interopRequireDefault(_PlainObserver);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -453,9 +528,21 @@
 	var Plain = function () {
 	    function Plain() {
 	        _classCallCheck(this, Plain);
+
+	        Object.defineProperty(this, 'data', {
+	            enumerable: true,
+	            configurable: false,
+	            writable: false,
+	            value: {}
+	        });
 	    }
 
 	    _createClass(Plain, [{
+	        key: 'setData',
+	        value: function setData(data) {
+	            Object.assign(this.data, data);
+	        }
+	    }, {
 	        key: 'getData',
 	        value: function getData() {
 	            return this.data;
@@ -466,6 +553,11 @@
 	    }, {
 	        key: 'onMount',
 	        value: function onMount() {}
+	    }, {
+	        key: 'update',
+	        value: function update() {
+	            _PlainObserver2.default.update(this.getData());
+	        }
 	    }]);
 
 	    return Plain;
@@ -474,7 +566,7 @@
 	exports.default = Plain;
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -485,7 +577,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _Plain2 = __webpack_require__(4);
+	var _Plain2 = __webpack_require__(5);
 
 	var _Plain3 = _interopRequireDefault(_Plain2);
 
@@ -524,16 +616,16 @@
 	exports.default = Button;
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports) {
 
 	module.exports = "<button class=\"button\" content=\"label\"></button>";
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\"page\">\r\n    <h1 content=\"title\"></h1>\r\n    <div class=\"header\" content=\"header\"></div>\r\n    <p content=\"body\"></p>\r\n    <div content=\"button\"></div>\r\n    <div class=\"footer\" content=\"footer\"></div>\r\n</div>";
+	module.exports = "<div class=\"page\">\r\n    <h1 content=\"title\">\r\n        <span content=\"counter\"></span>\r\n    </h1>\r\n    <div class=\"header\" content=\"header\"></div>\r\n    <p content=\"body\"></p>\r\n    <div class=\"footer\" content=\"footer\"></div>\r\n</div>";
 
 /***/ }
 /******/ ]);

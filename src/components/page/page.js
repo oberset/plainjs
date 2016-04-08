@@ -6,20 +6,27 @@ export default class Page extends Plain {
 
     constructor() {
         super();
-        this.data = {
-            button: {
-                component: Button,
-                template: ButtonTemplate
-            },
+        this.setData({
+            counter: 1,
             title: 'Page title',
             header: 'Page header',
             body: 'Page content here.',
             footer: 'Page footer'
-        };
+        });
     }
 
-    onMount() {
+    onMount(node) {
         console.log('!!! Mounted Page');
+        node.addEventListener('click', this.onClick);
+
+        this.setData({
+            header: 'Update page header!!!'
+        });
+    }
+
+    onClick = () => {
+        this.data.counter++;
+        this.update();
     }
 
 }
