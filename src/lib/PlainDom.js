@@ -5,11 +5,13 @@ const DOC = document;
 export default class PlainDom {
 
     static createDocumentFragment(template) {
-        let elem = DOC.createElement('div');
         let fragment = DOC.createDocumentFragment();
 
-        elem.innerHTML = template;
-        fragment.appendChild(elem);
+        if (template) {
+            let elem = DOC.createElement('div');
+            elem.innerHTML = template;
+            fragment.appendChild(elem);
+        }
 
         return fragment;
     }
@@ -18,7 +20,16 @@ export default class PlainDom {
         return this.createDocumentFragment(html).firstChild;
     }
 
-    createElementNode(name, attributes = {}) {
+    static getDomListIterator(list) {
+        let i = 0;
+        let count = list.length;
+
+        return function() {
+            return i < count ? list[i++] : null;
+        };
+    }
+
+    createElement(name, attributes = {}) {
         let element = DOC.createElement(name);
         let props = Object.keys(attributes);
 
@@ -30,19 +41,41 @@ export default class PlainDom {
         return element;
     }
 
+    updateElement(element, attributes = {}) {
+        let attributesExists = PlainDom.getDomListIterator(element.attributes);
+        let attribute;
+
+        while (attribute = attributesExists()) {
+            let name = attribute.nodeName;
+            let value = attribute.nodeValue;
+
+            if (T_UNDEF === attributes[name]) {
+                element.removeAttribute(name);
+            } else if (value !== attributes[name]) {
+                element.setAttribute(name, attributes[name]);
+            }
+        }
+    }
+
+    createTextNode(content) {
+        return DOC.createTextNode('' + content);
+    }
+
     addContent(node, content) {
         node.appendChild(
             DOC.createTextNode('' + content)
         );
     }
 
-    getDomListIterator(list) {
-        let i = 0;
-        let count = list.length;
+    updateContent(node, content) {
+        this.removeContent(node);
+        this.addContent(node, content);
+    }
 
-        return function() {
-            return i < count ? list[i++] : null;
-        };
+    removeContent(node) {
+        while (node.firstChild) {
+            node.removeChild(node.firstChild);
+        }
     }
 
 }

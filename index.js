@@ -1,7 +1,7 @@
-import PlainDomFragment from './src/lib/PlainDomFragment';
+import PlainComponent from './src/lib/PlainComponent';
 import Page from './src/components/page/page';
-import PageTemplate from './src/components/page/page.html';
+import template from './src/components/page/page.html';
 
 console.time('render');
-PlainDomFragment.render(Page, PageTemplate, document.body);
+PlainComponent.render(Page, template, document.querySelectorAll('.container'));
 console.timeEnd('render');

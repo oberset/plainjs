@@ -1,8 +1,16 @@
-<div class="page">
-    <h1 content="title">
-        <span content="counter"></span>
+<div class=":className">
+    <h1>
+        <span content="title"></span> №<span from="counter" content="first"></span>
     </h1>
     <div class="header" content="header"></div>
-    <p content="body"></p>
+    <p class="content">
+        <span content="body"></span>
+        <span content="button" type="element"></span>
+    </p>
+    <ul class="list" from="list" for-each="items" to="item">
+        <li from="item">
+            <span content="name"></span>
+        </li>
+    </ul>
     <div class="footer" content="footer"></div>
 </div>

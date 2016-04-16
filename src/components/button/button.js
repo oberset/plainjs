@@ -4,13 +4,19 @@ export default class Button extends Plain {
 
     constructor() {
         super();
-        this.data = {
+        this.setData({
             label: 'Click here!!!'
-        };
+        });
     }
 
-    onMount() {
+    onMount(node) {
         console.log('!!! Mounted Button');
+        node.addEventListener('click', this.onClick);
+    }
+
+    onClick = () => {
+        this.data.label = 'Clicked!!!';
+        this.update();
     }
 
 }
