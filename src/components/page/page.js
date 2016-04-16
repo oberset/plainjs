@@ -8,7 +8,9 @@ export default class Page extends Plain {
     constructor() {
         super();
 
-        this.button = new PlainComponent(Button, buttonTemplate);
+        this.button = new PlainComponent(Button, buttonTemplate, {
+            label: 'Click here!!!'
+        });
 
         this.setData({
             className: 'main-page',

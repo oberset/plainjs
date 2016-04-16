@@ -1,36 +1,25 @@
-import PlainDomFragment from './PlainDomFragment';
+import PlainDom from './PlainDom';
+import PlainRenderer from './PlainRenderer';
 import PlainObserver from './PlainObserver';
 
 export default class PlainComponent {
 
-    constructor(ProviderClass, template) {
+    constructor(ProviderClass, template, data = {}) {
         this.provider = ProviderClass;
         this.template = template;
+        this.data = data;
     }
 
     render(node) {
         let ProviderClass = this.provider;
-        let template = PlainDomFragment.createTemplateFromString(this.template);
-        let list = Array.isArray(node) ? node : [];
-
-        switch (true) {
-            case node instanceof Node:
-                list.push(node);
-            break;
-
-            case node instanceof NodeList:
-                let it = PlainDomFragment.getDomListIterator(node);
-                let nextNode;
-                while (nextNode = it()) {
-                    list.push(nextNode);
-                }
-            break;
-        }
+        let template = this.template;
+        let list = PlainDom.toArray(node);
 
         list.forEach((node) => {
-            let provider = new ProviderClass();
+            let passedData = Object.assign({}, this.data);
+            let provider = new ProviderClass(passedData);
             let data = provider.getData();
-            let fragment = new PlainDomFragment(template);
+            let fragment = new PlainRenderer(template);
 
             PlainObserver.register(data, fragment);
             PlainObserver.update(data);

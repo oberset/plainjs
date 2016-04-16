@@ -1,81 +1,104 @@
-const T_UNDEF = void(0);
-const T_FUNC = 'function';
-const DOC = document;
+const T_UNDEFINED = void(0);
+const T_STRING = 'string';
+const T_OBJECT = 'object';
+
+const doc = document;
+const arraySlice = Array.prototype.slice;
+
+function toArray(list) {
+    return Array.isArray(list) ? list : (list ? arraySlice.call(list) : []);
+}
+
+function isNode(test) {
+    return test instanceof Node;
+}
 
 export default class PlainDom {
 
-    static createDocumentFragment(template) {
-        let fragment = DOC.createDocumentFragment();
+    static createDocumentFragment(content) {
+        let frag = doc.createDocumentFragment();
 
-        if (template) {
-            let elem = DOC.createElement('div');
-            elem.innerHTML = template;
-            fragment.appendChild(elem);
+        if (content) {
+            if (!isNode(content)) {
+                let elem = doc.createElement('div');
+                elem.innerHTML = '' + content;
+                content = elem;
+            }
+            frag.appendChild(content);
         }
 
-        return fragment;
+        return frag;
     }
 
-    static createTemplateFromString(html) {
-        return this.createDocumentFragment(html).firstChild;
-    }
+    static createElement(name, attributes) {
+        let elem = doc.createElement(name);
 
-    static getDomListIterator(list) {
-        let i = 0;
-        let count = list.length;
-
-        return function() {
-            return i < count ? list[i++] : null;
-        };
-    }
-
-    createElement(name, attributes = {}) {
-        let element = DOC.createElement(name);
-        let props = Object.keys(attributes);
-
-        for (let prop of props) {
-            let value = attributes[prop];
-            element.setAttribute(prop, (value === T_UNDEF ? prop : value));
+        if (typeof attributes === T_OBJECT) {
+            let keys = Object.keys(attributes);
+            for (let key of keys) {
+                let value = attributes[key];
+                elem.setAttribute(key, (value === T_UNDEFINED ? key : value));
+            }
         }
 
-        return element;
+        return elem;
     }
 
-    updateElement(element, attributes = {}) {
-        let attributesExists = PlainDom.getDomListIterator(element.attributes);
-        let attribute;
+    static createTextNode(text) {
+        return doc.createTextNode('' + text);
+    }
 
-        while (attribute = attributesExists()) {
+    static appendChild(node, child) {
+        !isNode(child) && (child = doc.createTextNode('' + child));
+        node.appendChild(child);
+    }
+
+    static appendChildren(node, children) {
+        let list = toArray(children);
+        let frag = this.createDocumentFragment();
+
+        for (let item of list) {
+            this.appendChild(frag, item);
+        }
+
+        node.appendChild(frag);
+    }
+
+    static removeChild(node, child) {
+        node.removeChild(child);
+    }
+
+    static removeChildren(node) {
+        while (node.firstChild) {
+            node.removeChild(node.firstChild);
+        }
+    }
+
+    static getChildren(node) {
+        return toArray(node.childNodes);
+    }
+
+    static getAttributes(node) {
+        return toArray(node.attributes);
+    }
+
+    static setAttributes(node, attributes) {
+        let list = toArray(node.attributes);
+
+        for (let attribute of list) {
             let name = attribute.nodeName;
             let value = attribute.nodeValue;
 
-            if (T_UNDEF === attributes[name]) {
-                element.removeAttribute(name);
+            if (T_UNDEFINED === attributes[name]) {
+                node.removeAttribute(name);
             } else if (value !== attributes[name]) {
-                element.setAttribute(name, attributes[name]);
+                node.setAttribute(name, attributes[name]);
             }
         }
     }
 
-    createTextNode(content) {
-        return DOC.createTextNode('' + content);
-    }
-
-    addContent(node, content) {
-        node.appendChild(
-            DOC.createTextNode('' + content)
-        );
-    }
-
-    updateContent(node, content) {
-        this.removeContent(node);
-        this.addContent(node, content);
-    }
-
-    removeContent(node) {
-        while (node.firstChild) {
-            node.removeChild(node.firstChild);
-        }
+    static toArray(nodelist) {
+        return isNode(nodelist) ? [nodelist] : toArray(nodelist);
     }
 
 }

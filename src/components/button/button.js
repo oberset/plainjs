@@ -2,12 +2,9 @@ import Plain from '../../lib/Plain';
 
 export default class Button extends Plain {
 
-    constructor() {
-        super();
-        this.setData({
-            label: 'Click here!!!'
-        });
-    }
+    defaultData = {
+        label: ''
+    };
 
     onMount(node) {
         console.log('!!! Mounted Button');

@@ -1,7 +1,7 @@
 import PlainDom from './PlainDom';
 import PlainObserver from './PlainObserver';
 
-export default class PlainDomFragment extends PlainDom {
+export default class PlainRenderer {
 
     static fragmentData = {
         name: null,
@@ -19,11 +19,14 @@ export default class PlainDomFragment extends PlainDom {
     };
 
     constructor(template) {
-        super();
-        this.template = template;
+        this.template = this.createTemplateFromString(template);
         this.fragment = null;
         this.node = null;
         this.data = {};
+    }
+
+    createTemplateFromString(html) {
+        return PlainDom.createDocumentFragment(html).firstChild;
     }
 
     update(data) {
@@ -73,34 +76,34 @@ export default class PlainDomFragment extends PlainDom {
     }
 
     createFragmentFromElement(root) {
-        let result = Object.assign({}, PlainDomFragment.fragmentData);
+        let result = Object.assign({}, PlainRenderer.fragmentData);
         let options = {};
 
-        let attributesIterator = PlainDom.getDomListIterator(root.attributes);
+        let attributesIterator = PlainDom.getAttributes(root);
         let attribute;
         let attributes = {};
         let attributesData = {};
         let hasAttributesData = false;
 
-        while (attribute = attributesIterator()) {
+        for (let attribute of attributesIterator) {
             let attributeName = attribute.nodeName.toLowerCase();
             let attributeValue = attribute.nodeValue;
 
             if (attributeValue.indexOf(':') === 0) {
                 attributesData[attributeName] = attributeValue;
                 !hasAttributesData && (hasAttributesData = true);
-            } else if (PlainDomFragment.options[attributeName]) {
+            } else if (PlainRenderer.options[attributeName]) {
                 options[attributeName] = attributeValue;
             } else {
                 attributes[attributeName] = attributeValue;
             }
         }
 
-        let childrenIterator = PlainDom.getDomListIterator(root.childNodes);
+        let childrenIterator = PlainDom.getChildren(root);
         let child;
         let children = [];
 
-        while (child = childrenIterator()) {
+        for (let child of childrenIterator) {
             let fragment = this.createFragmentFromTemplate(child);
             fragment && children.push(fragment);
         }
@@ -121,7 +124,7 @@ export default class PlainDomFragment extends PlainDom {
         data = data || this.data;
 
         if (fragment.type === 'string') {
-            fragment.node = this.createTextNode(fragment.value);
+            fragment.node = PlainDom.createTextNode(fragment.value);
             return fragment.node;
         }
 
@@ -133,36 +136,29 @@ export default class PlainDomFragment extends PlainDom {
 
         this.setAttributesData(fragment, data);
 
-        let node = this.createElement(fragment.name, fragment.attributes);
+        let node = PlainDom.createElement(fragment.name, fragment.attributes);
 
         if (options.content) {
             this.addContent(node, data[options.content], options.type);
         }
 
         if (fragment.children) {
-
-            let docFragment = document.createDocumentFragment();
-
             if (options['for-each']) {
                 let to = options['to'] || 'item';
                 let list = data[options['for-each']];
-
-                fragment.listKeys = [];
+                let docFragment = PlainDom.createDocumentFragment();
 
                 list.forEach((item) => {
                     let itemData = Object.assign({}, data);
                     itemData[to] = item;
 
-                    let key = this.getDataId(item);
-
                     this.addChildren(docFragment, itemData, fragment.children);
-                    fragment.listKeys.push(key);
                 });
-            } else {
-                this.addChildren(docFragment, data, fragment.children);
-            }
 
-            node.appendChild(docFragment);
+                PlainDom.appendChild(node, docFragment);
+            } else {
+                this.addChildren(node, data, fragment.children);
+            }
         }
 
         fragment.node = node;
@@ -170,14 +166,15 @@ export default class PlainDomFragment extends PlainDom {
     }
 
     getDataId(data) {
-        return typeof data === 'object' ? (data.key || JSON.stringify(data)) : data;
+        return typeof data === 'object' ? (data.key || JSON.stringify(data)) : ('' + data).toLowerCase();
     }
 
     addChildren(node, data, list) {
-        for (let child of list) {
-            let childNode = this.createFragmentNode(child, data);
-            childNode && node.appendChild(childNode);
-        }
+        PlainDom.appendChildren(node, list.map(
+            (item) => this.createFragmentNode(item, data)
+        ).filter(
+            (item) => item && true
+        ));
     }
 
     updateChildren(list, data) {
@@ -203,7 +200,7 @@ export default class PlainDomFragment extends PlainDom {
     }
 
     deleteFragment(fragment) {
-        fragment.node && fragment.node.parentNode.removeChild(fragment.node);
+        fragment.node && PlainDom.removeChild(fragment.node.parentNode, fragment.node);
         fragment = null;
     }
 
@@ -223,7 +220,7 @@ export default class PlainDomFragment extends PlainDom {
         }
 
         this.setAttributesData(fragment, data);
-        this.updateElement(node, fragment.attributes);
+        PlainDom.setAttributes(node, fragment.attributes);
 
         if (options.content) {
             this.updateContent(node, data[options.content], options.type);
@@ -233,24 +230,18 @@ export default class PlainDomFragment extends PlainDom {
             if (options['for-each']) {
                 let to = options['to'] || 'item';
                 let list = data[options['for-each']];
+                let docFragment = PlainDom.createDocumentFragment();
 
-                //TODO: delete only modified items
-                this.removeContent(node);
-                fragment.listKeys = [];
-
-                let docFragment = document.createDocumentFragment();
+                PlainDom.removeChildren(node);
 
                 list.forEach((item) => {
                     let itemData = Object.assign({}, data);
                     itemData[to] = item;
 
-                    let key = this.getDataId(item);
-
                     this.addChildren(docFragment, itemData, fragment.children);
-                    fragment.listKeys.push(key);
                 });
 
-                node.appendChild(docFragment);
+                PlainDom.appendChild(node, docFragment);
             } else {
                 this.updateChildren(fragment.children, data);
             }
@@ -261,13 +252,14 @@ export default class PlainDomFragment extends PlainDom {
         if (type === 'element') {
             content.render(node);
         } else {
-            super.addContent(node, content);
+            PlainDom.appendChild(node, content);
         }
     }
 
     updateContent(node, content, type) {
         if (type !== 'element') {
-            super.updateContent(node, content);
+            PlainDom.removeChildren(node);
+            PlainDom.appendChild(node, content);
         }
     }
 
