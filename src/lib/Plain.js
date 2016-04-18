@@ -1,25 +1,23 @@
 import PlainObserver from './PlainObserver';
-
-function isObject(obj) {
-    return Object.prototype.toString.call(obj) === "[object Object]";
-}
+import { isObject, copyObject } from './utils';
 
 export default class Plain {
 
-    defaultData = {};
+    defaultProps = {};
 
     constructor(data = {}) {
         if (!isObject(data)) {
             throw new Error('Passed "data" must be a plain object');
         }
 
-        let ownData = Object.assign({}, this.defaultData, data);
+        let defaultProps = copyObject(this.defaultProps);
+        let props = copyObject(data, defaultProps);
 
         Object.defineProperty(this, 'data', {
             enumerable: true,
             configurable: false,
             writable: false,
-            value: ownData
+            value: props
         });
     }
 

@@ -1,17 +1,7 @@
+import { isNode, toArray } from './utils';
+
 const T_UNDEFINED = void(0);
-const T_STRING = 'string';
-const T_OBJECT = 'object';
-
 const doc = document;
-const arraySlice = Array.prototype.slice;
-
-function toArray(list) {
-    return Array.isArray(list) ? list : (list ? arraySlice.call(list) : []);
-}
-
-function isNode(test) {
-    return test instanceof Node;
-}
 
 export default class PlainDom {
 
@@ -33,7 +23,7 @@ export default class PlainDom {
     static createElement(name, attributes) {
         let elem = doc.createElement(name);
 
-        if (typeof attributes === T_OBJECT) {
+        if (attributes) {
             let keys = Object.keys(attributes);
             for (let key of keys) {
                 let value = attributes[key];

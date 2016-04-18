@@ -80,7 +80,6 @@ export default class PlainRenderer {
         let options = {};
 
         let attributesIterator = PlainDom.getAttributes(root);
-        let attribute;
         let attributes = {};
         let attributesData = {};
         let hasAttributesData = false;
@@ -100,7 +99,6 @@ export default class PlainRenderer {
         }
 
         let childrenIterator = PlainDom.getChildren(root);
-        let child;
         let children = [];
 
         for (let child of childrenIterator) {
@@ -134,6 +132,8 @@ export default class PlainRenderer {
             data = data[options.from];
         }
 
+        let previousData = data;
+
         this.setAttributesData(fragment, data);
 
         let node = PlainDom.createElement(fragment.name, fragment.attributes);
@@ -162,7 +162,20 @@ export default class PlainRenderer {
         }
 
         fragment.node = node;
+        fragment.previousData = previousData;
+
         return node;
+    }
+
+    forEachChildren(children, list, to) {
+        let docFragment = PlainDom.createDocumentFragment();
+
+        list.forEach((item) => {
+            let itemData = Object.assign({}, data);
+            itemData[to] = item;
+
+            this.addChildren(docFragment, itemData, children);
+        });
     }
 
     getDataId(data) {

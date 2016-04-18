@@ -2,7 +2,7 @@ import Plain from '../../lib/Plain';
 
 export default class Button extends Plain {
 
-    defaultData = {
+    defaultProps = {
         label: ''
     };
 

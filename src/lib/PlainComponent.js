@@ -16,8 +16,7 @@ export default class PlainComponent {
         let list = PlainDom.toArray(node);
 
         list.forEach((node) => {
-            let passedData = Object.assign({}, this.data);
-            let provider = new ProviderClass(passedData);
+            let provider = new ProviderClass(this.data);
             let data = provider.getData();
             let fragment = new PlainRenderer(template);
 
