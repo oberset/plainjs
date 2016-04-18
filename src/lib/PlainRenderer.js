@@ -1,5 +1,6 @@
 import PlainDom from './PlainDom';
 import PlainObserver from './PlainObserver';
+import {isObject, copyObject} from './utils';
 
 export default class PlainRenderer {
 
@@ -23,6 +24,7 @@ export default class PlainRenderer {
         this.fragment = null;
         this.node = null;
         this.data = {};
+        this.previousData = {};
     }
 
     createTemplateFromString(html) {
@@ -30,7 +32,7 @@ export default class PlainRenderer {
     }
 
     update(data) {
-        this.data = Object.assign({}, this.data, data);
+        this.data = Object.assign(this.data, data);
 
         if (null === this.fragment) {
             this.fragment = this.createFragmentFromTemplate();
@@ -41,6 +43,8 @@ export default class PlainRenderer {
         } else {
             this.updateFragment();
         }
+
+        this.previousData = copyObject(this.data);
     }
 
     createFragmentFromTemplate(template) {
@@ -167,19 +171,46 @@ export default class PlainRenderer {
         return node;
     }
 
-    forEachChildren(children, list, to) {
-        let docFragment = PlainDom.createDocumentFragment();
+    updateList(items, previousItems) {
+        let itemsKeys = items.map(item => this.getDataId(item));
+        let previousItemsKeys = previousItems.map(item => this.getDataId(item));
 
-        list.forEach((item) => {
-            let itemData = Object.assign({}, data);
-            itemData[to] = item;
+        let oldItems = [];
+        let newItems = [];
 
-            this.addChildren(docFragment, itemData, children);
-        });
+        let changes = [];
+
+        for (let [key, i] of itemsKeys) {
+            if (previousItemsKeys[i]) {
+                if (key === previousItemsKeys[i]) {
+                    changes.push({
+                        type: ITEM_EQUALS
+                    });
+                } else {
+                    changes.push({
+                        type: ITEM_TO_UPDATE,
+                        data: items[i],
+                        previous: previousItems[i]
+                    });
+                }
+            } else {
+                changes.push({
+                    type: ITEM_TO_ADD,
+                    data: items[i]
+                })
+            }
+        }
+
+        if (previousItems.length > items.length) {
+            changes.length = previousItems.length;
+            changes.fill({type: ITEM_TO_DELETE}, items.length);
+        }
+
+        console.log(changes);
     }
 
     getDataId(data) {
-        return typeof data === 'object' ? (data.key || JSON.stringify(data)) : ('' + data).toLowerCase();
+        return isObject(data) ? (data.key || JSON.stringify(data)) : ('' + data).toLowerCase();
     }
 
     addChildren(node, data, list) {

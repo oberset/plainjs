@@ -1,5 +1,3 @@
-const arraySlice = Array.prototype.slice;
-
 export function isObject(obj) {
     return Object.prototype.toString.call(obj) === "[object Object]";
 }
@@ -30,7 +28,7 @@ export function copyArray(source, target = []) {
 }
 
 export function toArray(list) {
-    return Array.isArray(list) ? list : (list ? arraySlice.call(list) : []);
+    return Array.from(list);
 }
 
 export function isNode(test) {

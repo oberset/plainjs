@@ -344,8 +344,6 @@
 	exports.copyArray = copyArray;
 	exports.toArray = toArray;
 	exports.isNode = isNode;
-	var arraySlice = Array.prototype.slice;
-
 	function isObject(obj) {
 	    return Object.prototype.toString.call(obj) === "[object Object]";
 	}
@@ -402,7 +400,7 @@
 	}
 
 	function toArray(list) {
-	    return Array.isArray(list) ? list : list ? arraySlice.call(list) : [];
+	    return Array.from(list);
 	}
 
 	function isNode(test) {
@@ -419,7 +417,7 @@
 	    value: true
 	});
 
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -430,6 +428,8 @@
 	var _PlainObserver = __webpack_require__(5);
 
 	var _PlainObserver2 = _interopRequireDefault(_PlainObserver);
+
+	var _utils = __webpack_require__(3);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -443,6 +443,7 @@
 	        this.fragment = null;
 	        this.node = null;
 	        this.data = {};
+	        this.previousData = {};
 	    }
 
 	    _createClass(PlainRenderer, [{
@@ -453,7 +454,7 @@
 	    }, {
 	        key: 'update',
 	        value: function update(data) {
-	            this.data = Object.assign({}, this.data, data);
+	            this.data = Object.assign(this.data, data);
 
 	            if (null === this.fragment) {
 	                this.fragment = this.createFragmentFromTemplate();
@@ -464,6 +465,8 @@
 	            } else {
 	                this.updateFragment();
 	            }
+
+	            this.previousData = (0, _utils.copyObject)(this.data);
 	        }
 	    }, {
 	        key: 'createFragmentFromTemplate',
@@ -506,7 +509,6 @@
 	            var options = {};
 
 	            var attributesIterator = _PlainDom2.default.getAttributes(root);
-	            var attribute = void 0;
 	            var attributes = {};
 	            var attributesData = {};
 	            var hasAttributesData = false;
@@ -517,10 +519,10 @@
 
 	            try {
 	                for (var _iterator = attributesIterator[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-	                    var _attribute = _step.value;
+	                    var attribute = _step.value;
 
-	                    var attributeName = _attribute.nodeName.toLowerCase();
-	                    var attributeValue = _attribute.nodeValue;
+	                    var attributeName = attribute.nodeName.toLowerCase();
+	                    var attributeValue = attribute.nodeValue;
 
 	                    if (attributeValue.indexOf(':') === 0) {
 	                        attributesData[attributeName] = attributeValue;
@@ -547,7 +549,6 @@
 	            }
 
 	            var childrenIterator = _PlainDom2.default.getChildren(root);
-	            var child = void 0;
 	            var children = [];
 
 	            var _iteratorNormalCompletion2 = true;
@@ -556,9 +557,9 @@
 
 	            try {
 	                for (var _iterator2 = childrenIterator[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-	                    var _child = _step2.value;
+	                    var child = _step2.value;
 
-	                    var fragment = this.createFragmentFromTemplate(_child);
+	                    var fragment = this.createFragmentFromTemplate(child);
 	                    fragment && children.push(fragment);
 	                }
 	            } catch (err) {
@@ -605,6 +606,8 @@
 	                data = data[options.from];
 	            }
 
+	            var previousData = data;
+
 	            this.setAttributesData(fragment, data);
 
 	            var node = _PlainDom2.default.createElement(fragment.name, fragment.attributes);
@@ -635,36 +638,56 @@
 	            }
 
 	            fragment.node = node;
+	            fragment.previousData = previousData;
+
 	            return node;
 	        }
 	    }, {
-	        key: 'getDataId',
-	        value: function getDataId(data) {
-	            return (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data.key || JSON.stringify(data) : ('' + data).toLowerCase();
-	        }
-	    }, {
-	        key: 'addChildren',
-	        value: function addChildren(node, data, list) {
+	        key: 'updateList',
+	        value: function updateList(items, previousItems) {
 	            var _this2 = this;
 
-	            _PlainDom2.default.appendChildren(node, list.map(function (item) {
-	                return _this2.createFragmentNode(item, data);
-	            }).filter(function (item) {
-	                return item && true;
-	            }));
-	        }
-	    }, {
-	        key: 'updateChildren',
-	        value: function updateChildren(list, data) {
+	            var itemsKeys = items.map(function (item) {
+	                return _this2.getDataId(item);
+	            });
+	            var previousItemsKeys = previousItems.map(function (item) {
+	                return _this2.getDataId(item);
+	            });
+
+	            var oldItems = [];
+	            var newItems = [];
+
+	            var changes = [];
+
 	            var _iteratorNormalCompletion3 = true;
 	            var _didIteratorError3 = false;
 	            var _iteratorError3 = undefined;
 
 	            try {
-	                for (var _iterator3 = list[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-	                    var child = _step3.value;
+	                for (var _iterator3 = itemsKeys[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+	                    var _step3$value = _slicedToArray(_step3.value, 2);
 
-	                    this.updateFragment(child, data);
+	                    var key = _step3$value[0];
+	                    var i = _step3$value[1];
+
+	                    if (previousItemsKeys[i]) {
+	                        if (key === previousItemsKeys[i]) {
+	                            changes.push({
+	                                type: ITEM_EQUALS
+	                            });
+	                        } else {
+	                            changes.push({
+	                                type: ITEM_TO_UPDATE,
+	                                data: items[i],
+	                                previous: previousItems[i]
+	                            });
+	                        }
+	                    } else {
+	                        changes.push({
+	                            type: ITEM_TO_ADD,
+	                            data: items[i]
+	                        });
+	                    }
 	                }
 	            } catch (err) {
 	                _didIteratorError3 = true;
@@ -680,10 +703,33 @@
 	                    }
 	                }
 	            }
+
+	            if (previousItems.length > items.length) {
+	                changes.length = previousItems.length;
+	                changes.fill({ type: ITEM_TO_DELETE }, items.length);
+	            }
+
+	            console.log(changes);
 	        }
 	    }, {
-	        key: 'deleteChildren',
-	        value: function deleteChildren(list) {
+	        key: 'getDataId',
+	        value: function getDataId(data) {
+	            return (0, _utils.isObject)(data) ? data.key || JSON.stringify(data) : ('' + data).toLowerCase();
+	        }
+	    }, {
+	        key: 'addChildren',
+	        value: function addChildren(node, data, list) {
+	            var _this3 = this;
+
+	            _PlainDom2.default.appendChildren(node, list.map(function (item) {
+	                return _this3.createFragmentNode(item, data);
+	            }).filter(function (item) {
+	                return item && true;
+	            }));
+	        }
+	    }, {
+	        key: 'updateChildren',
+	        value: function updateChildren(list, data) {
 	            var _iteratorNormalCompletion4 = true;
 	            var _didIteratorError4 = false;
 	            var _iteratorError4 = undefined;
@@ -692,7 +738,7 @@
 	                for (var _iterator4 = list[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
 	                    var child = _step4.value;
 
-	                    this.deleteFragment(child);
+	                    this.updateFragment(child, data);
 	                }
 	            } catch (err) {
 	                _didIteratorError4 = true;
@@ -710,32 +756,60 @@
 	            }
 	        }
 	    }, {
+	        key: 'deleteChildren',
+	        value: function deleteChildren(list) {
+	            var _iteratorNormalCompletion5 = true;
+	            var _didIteratorError5 = false;
+	            var _iteratorError5 = undefined;
+
+	            try {
+	                for (var _iterator5 = list[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+	                    var child = _step5.value;
+
+	                    this.deleteFragment(child);
+	                }
+	            } catch (err) {
+	                _didIteratorError5 = true;
+	                _iteratorError5 = err;
+	            } finally {
+	                try {
+	                    if (!_iteratorNormalCompletion5 && _iterator5.return) {
+	                        _iterator5.return();
+	                    }
+	                } finally {
+	                    if (_didIteratorError5) {
+	                        throw _iteratorError5;
+	                    }
+	                }
+	            }
+	        }
+	    }, {
 	        key: 'setAttributesData',
 	        value: function setAttributesData(fragment, data) {
 	            if (fragment.hasAttributesData) {
 	                var attributes = Object.keys(fragment.attributesData);
-	                var _iteratorNormalCompletion5 = true;
-	                var _didIteratorError5 = false;
-	                var _iteratorError5 = undefined;
+	                var _iteratorNormalCompletion6 = true;
+	                var _didIteratorError6 = false;
+	                var _iteratorError6 = undefined;
 
 	                try {
-	                    for (var _iterator5 = attributes[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-	                        var key = _step5.value;
+	                    for (var _iterator6 = attributes[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+	                        var key = _step6.value;
 
 	                        var value = fragment.attributesData[key];
 	                        fragment.attributes[key] = data[value.substring(1)];
 	                    }
 	                } catch (err) {
-	                    _didIteratorError5 = true;
-	                    _iteratorError5 = err;
+	                    _didIteratorError6 = true;
+	                    _iteratorError6 = err;
 	                } finally {
 	                    try {
-	                        if (!_iteratorNormalCompletion5 && _iterator5.return) {
-	                            _iterator5.return();
+	                        if (!_iteratorNormalCompletion6 && _iterator6.return) {
+	                            _iterator6.return();
 	                        }
 	                    } finally {
-	                        if (_didIteratorError5) {
-	                            throw _iteratorError5;
+	                        if (_didIteratorError6) {
+	                            throw _iteratorError6;
 	                        }
 	                    }
 	                }
@@ -750,7 +824,7 @@
 	    }, {
 	        key: 'updateFragment',
 	        value: function updateFragment(fragment, data) {
-	            var _this3 = this;
+	            var _this4 = this;
 
 	            fragment = fragment || this.fragment;
 	            data = data || this.data;
@@ -786,7 +860,7 @@
 	                            var itemData = Object.assign({}, data);
 	                            itemData[to] = item;
 
-	                            _this3.addChildren(docFragment, itemData, fragment.children);
+	                            _this4.addChildren(docFragment, itemData, fragment.children);
 	                        });
 
 	                        _PlainDom2.default.appendChild(node, docFragment);
@@ -1122,7 +1196,7 @@
 /* 10 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\":className\">\n    <h1>\n        <span content=\"title\"></span> №<span from=\"counter\" content=\"first\"></span>\n    </h1>\n    <div class=\"header\" content=\"header\"></div>\n    <p class=\"content\">\n        <span content=\"body\"></span>\n        <span content=\"button\" type=\"element\"></span>\n    </p>\n    <ul class=\"list\" from=\"list\" for-each=\"items\" to=\"item\">\n        <li from=\"item\">\n            <span content=\"name\"></span>\n        </li>\n    </ul>\n    <div class=\"footer\" content=\"footer\"></div>\n</div>";
+	module.exports = "<div class=\":className\">\r\n    <h1>\r\n        <span content=\"title\"></span> №<span from=\"counter\" content=\"first\"></span>\r\n    </h1>\r\n    <div class=\"header\" content=\"header\"></div>\r\n    <p class=\"content\">\r\n        <span content=\"body\"></span>\r\n        <span content=\"button\" type=\"element\"></span>\r\n    </p>\r\n    <ul class=\"list\" from=\"list\" for-each=\"items\" to=\"item\">\r\n        <li from=\"item\">\r\n            <span content=\"name\"></span>\r\n        </li>\r\n    </ul>\r\n    <div class=\"footer\" content=\"footer\"></div>\r\n</div>";
 
 /***/ }
 /******/ ]);
