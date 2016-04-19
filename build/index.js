@@ -217,13 +217,23 @@
 	        }
 	    }, {
 	        key: 'createTextNode',
-	        value: function createTextNode(text) {
-	            return doc.createTextNode('' + text);
+	        value: function createTextNode(str) {
+	            return doc.createTextNode(str);
+	        }
+	    }, {
+	        key: 'setText',
+	        value: function setText(textNode, str) {
+	            textNode.nodeValue = str;
+	        }
+	    }, {
+	        key: 'getText',
+	        value: function getText(textNode) {
+	            return textNode.nodeValue;
 	        }
 	    }, {
 	        key: 'appendChild',
 	        value: function appendChild(node, child) {
-	            !(0, _utils.isNode)(child) && (child = doc.createTextNode('' + child));
+	            !(0, _utils.isNode)(child) && (child = doc.createTextNode(child));
 	            node.appendChild(child);
 	        }
 	    }, {
@@ -425,6 +435,8 @@
 	    value: true
 	});
 
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 	var _PlainDom = __webpack_require__(2);
@@ -465,13 +477,15 @@
 	    }, {
 	        key: 'update',
 	        value: function update(data) {
-	            this.data = Object.assign(this.data, data);
+	            this.data = data;
 
 	            if (null === this.fragment) {
 	                this.fragment = this.createFragmentFromTemplate();
 	                this.node = this.createFragmentNode();
 	            } else {
+	                console.time('updateFragment');
 	                this.updateFragment();
+	                console.timeEnd('updateFragment');
 	            }
 
 	            this.previousData = (0, _utils.copyObject)(this.data);
@@ -619,7 +633,7 @@
 	            var node = _PlainDom2.default.createElement(fragment.name, fragment.attributes);
 
 	            if (options.content) {
-	                this.addContent(node, data[options.content], options.type);
+	                this.addContent(node, fragment, data[options.content], options.type);
 	            }
 
 	            if (fragment.children) {
@@ -629,10 +643,10 @@
 	                        var list = data[options['for-each']];
 	                        var fragments = [];
 
-	                        list.forEach(function (item) {
+	                        list.forEach(function (item, i) {
 	                            var itemChildren = (0, _utils.copyArray)(fragment.children);
 	                            var itemData = Object.assign({}, data);
-	                            itemData[to] = item;
+	                            itemData[to] = _extends({ key: i }, item);
 
 	                            _this.addChildren(node, itemData, itemChildren);
 	                            fragments.push(itemChildren);
@@ -809,10 +823,7 @@
 
 	            if (options.content) {
 	                var content = data[options.content];
-
-	                if (content !== previousData[options.content]) {
-	                    this.updateContent(node, content, options.type);
-	                }
+	                this.updateContent(fragment, content, options.type);
 	            }
 
 	            if (fragment.children) {
@@ -836,7 +847,7 @@
 	                                    var itemChildren = (0, _utils.copyArray)(fragment.children);
 	                                    (function () {
 	                                        var itemData = Object.assign({}, data);
-	                                        itemData[to] = item.data;
+	                                        itemData[to] = _extends({ key: i }, item.data);
 
 	                                        _this3.addChildren(node, itemData, itemChildren);
 	                                        fragments.push(itemChildren);
@@ -846,7 +857,7 @@
 	                                case ITEMS_TO_UPDATE:
 	                                    (function () {
 	                                        var itemData = Object.assign({}, data);
-	                                        itemData[to] = item.data;
+	                                        itemData[to] = _extends({ key: i }, item.data);
 
 	                                        var itemPreviousData = Object.assign({}, previousData);
 	                                        itemPreviousData[to] = item.previous;
@@ -870,20 +881,32 @@
 	        }
 	    }, {
 	        key: 'addContent',
-	        value: function addContent(node, content, type) {
+	        value: function addContent(node, fragment, content, type) {
 	            if (type === 'element') {
 	                content.render(node);
+	                fragment.content = {
+	                    type: type,
+	                    component: content
+	                };
 	            } else {
-	                _PlainDom2.default.appendChild(node, content);
+	                var contentNode = _PlainDom2.default.createTextNode(content);
+	                _PlainDom2.default.appendChild(node, contentNode);
+	                fragment.content = {
+	                    type: type,
+	                    node: contentNode
+	                };
 	            }
 	        }
 	    }, {
 	        key: 'updateContent',
-	        value: function updateContent(node, content, type) {
-	            if (type !== 'element') {
-	                _PlainDom2.default.removeChildren(node);
-	                _PlainDom2.default.appendChild(node, content);
-	            }
+	        value: function updateContent(fragment, content, type) {
+	            if (fragment.content.type !== type) {
+	                // todo change type
+	            } else if (type !== 'element') {
+	                    var node = fragment.content.node;
+	                    var storedContent = _PlainDom2.default.getText(node);
+	                    storedContent !== content && _PlainDom2.default.setText(node, content);
+	                }
 	        }
 	    }]);
 
@@ -893,6 +916,7 @@
 	PlainRenderer.fragmentData = {
 	    name: null,
 	    attributes: null,
+	    content: null,
 	    children: null,
 	    renderedChildren: null,
 	    options: null
@@ -1033,21 +1057,19 @@
 	        value: function onMount(node) {
 	            node.querySelector('.button').addEventListener('click', this.onClick);
 
+	            var items = [];
+
+	            for (var i = 0; i < 100; i++) {
+	                items.push({
+	                    name: 'Updated ' + i
+	                });
+	            }
+
 	            this.setData({
 	                className: 'main-page main-page_loaded',
 	                header: 'Update page header!!!',
 	                list: {
-	                    items: [{
-	                        name: 'Updated One'
-	                    }, {
-	                        name: 'Updated Two'
-	                    }, {
-	                        name: 'Updated Three'
-	                    }, {
-	                        name: 'Add Four'
-	                    }, {
-	                        name: 'Add Five'
-	                    }]
+	                    items: items
 	                }
 	            });
 	        }
@@ -1198,7 +1220,7 @@
 /* 10 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\":className\">\n    <h1>\n        <span content=\"title\"></span> №<span from=\"counter\" content=\"first\"></span>\n    </h1>\n    <div class=\"header\" content=\"header\"></div>\n    <p class=\"content\">\n        <span content=\"body\"></span>\n        <span content=\"button\" type=\"element\"></span>\n    </p>\n    <ul class=\"list\" from=\"list\" for-each=\"items\" to=\"item\">\n        <li from=\"item\">\n            <span content=\"name\"></span>\n        </li>\n    </ul>\n    <div class=\"footer\" content=\"footer\"></div>\n</div>";
+	module.exports = "<div class=\":className\">\r\n    <h1>\r\n        <span content=\"title\"></span> №<span from=\"counter\" content=\"first\"></span>\r\n    </h1>\r\n    <div class=\"header\" content=\"header\"> <b>Static content inside header container</b></div>\r\n    <p class=\"content\">\r\n        <em>Static content here</em><br>\r\n        <span content=\"body\"> <b>Static content inside body container</b></span>\r\n        <span content=\"button\" type=\"element\"> <b>Static content inside button container</b></span>\r\n    </p>\r\n    <ul class=\"list\" from=\"list\" for-each=\"items\" to=\"item\">\r\n        <li from=\"item\">\r\n            <p class=\"list-item\">\r\n                <b>Item <span content=\"key\"></span></b>: <span content=\"name\"></span>\r\n            </p>\r\n        </li>\r\n    </ul>\r\n    <div class=\"footer\" content=\"footer\"></div>\r\n</div>";
 
 /***/ }
 /******/ ]);

@@ -41,27 +41,19 @@ export default class Page extends Plain {
     onMount(node) {
         node.querySelector('.button').addEventListener('click', this.onClick);
 
+        let items = [];
+
+        for (var i = 0; i < 100; i++) {
+            items.push({
+                name: 'Updated ' + i
+            });
+        }
+
         this.setData({
             className: 'main-page main-page_loaded',
             header: 'Update page header!!!',
             list: {
-                items: [
-                    {
-                        name: 'Updated One'
-                    },
-                    {
-                        name: 'Updated Two'
-                    },
-                    {
-                        name: 'Updated Three'
-                    },
-                    {
-                        name: 'Add Four'
-                    },
-                    {
-                        name: 'Add Five'
-                    }
-                ]
+                items: items
             }
         });
     }

@@ -2,14 +2,17 @@
     <h1>
         <span content="title"></span> №<span from="counter" content="first"></span>
     </h1>
-    <div class="header" content="header"></div>
+    <div class="header" content="header"> <b>Static content inside header container</b></div>
     <p class="content">
-        <span content="body"></span>
-        <span content="button" type="element"></span>
+        <em>Static content here</em><br>
+        <span content="body"> <b>Static content inside body container</b></span>
+        <span content="button" type="element"> <b>Static content inside button container</b></span>
     </p>
     <ul class="list" from="list" for-each="items" to="item">
         <li from="item">
-            <span content="name"></span>
+            <p class="list-item">
+                <b>Item <span content="key"></span></b>: <span content="name"></span>
+            </p>
         </li>
     </ul>
     <div class="footer" content="footer"></div>

@@ -34,12 +34,20 @@ export default class PlainDom {
         return elem;
     }
 
-    static createTextNode(text) {
-        return doc.createTextNode('' + text);
+    static createTextNode(str) {
+        return doc.createTextNode(str);
+    }
+
+    static setText(textNode, str) {
+        textNode.nodeValue = str;
+    }
+
+    static getText(textNode) {
+        return textNode.nodeValue;
     }
 
     static appendChild(node, child) {
-        !isNode(child) && (child = doc.createTextNode('' + child));
+        !isNode(child) && (child = doc.createTextNode(child));
         node.appendChild(child);
     }
 

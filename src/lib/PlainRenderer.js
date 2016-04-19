@@ -12,6 +12,7 @@ export default class PlainRenderer {
     static fragmentData = {
         name: null,
         attributes: null,
+        content: null,
         children: null,
         renderedChildren: null,
         options: null
@@ -38,13 +39,15 @@ export default class PlainRenderer {
     }
 
     update(data) {
-        this.data = Object.assign(this.data, data);
+        this.data = data;
 
         if (null === this.fragment) {
             this.fragment = this.createFragmentFromTemplate();
             this.node = this.createFragmentNode();
         } else {
+            console.time('updateFragment');
             this.updateFragment();
+            console.timeEnd('updateFragment');
         }
 
         this.previousData = copyObject(this.data);
@@ -144,7 +147,7 @@ export default class PlainRenderer {
         let node = PlainDom.createElement(fragment.name, fragment.attributes);
 
         if (options.content) {
-            this.addContent(node, data[options.content], options.type);
+            this.addContent(node, fragment, data[options.content], options.type);
         }
 
         if (fragment.children) {
@@ -153,10 +156,10 @@ export default class PlainRenderer {
                 let list = data[options['for-each']];
                 let fragments = [];
 
-                list.forEach((item) => {
+                list.forEach((item, i) => {
                     let itemChildren = copyArray(fragment.children);
                     let itemData = Object.assign({}, data);
-                    itemData[to] = item;
+                    itemData[to] = {key: i, ...item};
 
                     this.addChildren(node, itemData, itemChildren);
                     fragments.push(itemChildren);
@@ -255,10 +258,7 @@ export default class PlainRenderer {
 
         if (options.content) {
             let content = data[options.content];
-
-            if (content !== previousData[options.content]) {
-                this.updateContent(node, content, options.type);
-            }
+            this.updateContent(fragment, content, options.type);
         }
 
         if (fragment.children) {
@@ -281,7 +281,7 @@ export default class PlainRenderer {
                             let itemChildren = copyArray(fragment.children);
                             (() => {
                                 let itemData = Object.assign({}, data);
-                                itemData[to] = item.data;
+                                itemData[to] = {key: i, ...item.data};
 
                                 this.addChildren(node, itemData, itemChildren);
                                 fragments.push(itemChildren);
@@ -291,7 +291,7 @@ export default class PlainRenderer {
                         case ITEMS_TO_UPDATE:
                             (() => {
                                 let itemData = Object.assign({}, data);
-                                itemData[to] = item.data;
+                                itemData[to] = {key: i, ...item.data};
 
                                 let itemPreviousData = Object.assign({}, previousData);
                                 itemPreviousData[to] = item.previous;
@@ -313,18 +313,30 @@ export default class PlainRenderer {
         }
     }
 
-    addContent(node, content, type) {
+    addContent(node, fragment, content, type) {
         if (type === 'element') {
             content.render(node);
+            fragment.content = {
+                type: type,
+                component: content
+            };
         } else {
-            PlainDom.appendChild(node, content);
+            let contentNode = PlainDom.createTextNode(content);
+            PlainDom.appendChild(node, contentNode);
+            fragment.content = {
+                type: type,
+                node: contentNode
+            };
         }
     }
 
-    updateContent(node, content, type) {
-        if (type !== 'element') {
-            PlainDom.removeChildren(node);
-            PlainDom.appendChild(node, content);
+    updateContent(fragment, content, type) {
+        if (fragment.content.type !== type) {
+            // todo change type
+        } else if (type !== 'element') {
+            let node = fragment.content.node;
+            let storedContent = PlainDom.getText(node);
+            storedContent !== content && PlainDom.setText(node, content);
         }
     }
 
