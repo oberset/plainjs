@@ -273,8 +273,14 @@
 	        }
 	    }, {
 	        key: 'getChildren',
-	        value: function getChildren(node) {
-	            return (0, _utils.toArray)(node.childNodes);
+	        value: function getChildren(node, type) {
+	            if (!type) {
+	                return (0, _utils.toArray)(node.childNodes);
+	            } else {
+	                return (0, _utils.toArray)(node.childNodes).filter(function (node) {
+	                    return node.nodeType === type;
+	                });
+	            }
 	        }
 	    }, {
 	        key: 'getAttributes',
@@ -392,6 +398,8 @@
 	    for (var i = 0, len = source.length; i < len; i++) {
 	        if (Array.isArray(source[i])) {
 	            target[i] = copyArray(source[i]);
+	        } else if (isObject(source[i])) {
+	            target[i] = copyObject(source[i]);
 	        } else {
 	            target[i] = source[i];
 	        }
@@ -417,8 +425,6 @@
 	    value: true
 	});
 
-	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 	var _PlainDom = __webpack_require__(2);
@@ -434,6 +440,11 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var ITEMS_EQUALS = 0;
+	var ITEMS_TO_DELETE = -1;
+	var ITEMS_TO_ADD = 1;
+	var ITEMS_TO_UPDATE = 2;
 
 	var PlainRenderer = function () {
 	    function PlainRenderer(template) {
@@ -458,10 +469,7 @@
 
 	            if (null === this.fragment) {
 	                this.fragment = this.createFragmentFromTemplate();
-	                console.log(this.fragment);
-
 	                this.node = this.createFragmentNode();
-	                console.log(this.node);
 	            } else {
 	                this.updateFragment();
 	            }
@@ -606,8 +614,6 @@
 	                data = data[options.from];
 	            }
 
-	            var previousData = data;
-
 	            this.setAttributesData(fragment, data);
 
 	            var node = _PlainDom2.default.createElement(fragment.name, fragment.attributes);
@@ -621,16 +627,18 @@
 	                    (function () {
 	                        var to = options['to'] || 'item';
 	                        var list = data[options['for-each']];
-	                        var docFragment = _PlainDom2.default.createDocumentFragment();
+	                        var fragments = [];
 
 	                        list.forEach(function (item) {
+	                            var itemChildren = (0, _utils.copyArray)(fragment.children);
 	                            var itemData = Object.assign({}, data);
 	                            itemData[to] = item;
 
-	                            _this.addChildren(docFragment, itemData, fragment.children);
+	                            _this.addChildren(node, itemData, itemChildren);
+	                            fragments.push(itemChildren);
 	                        });
 
-	                        _PlainDom2.default.appendChild(node, docFragment);
+	                        fragment.renderedChildren = fragments;
 	                    })();
 	                } else {
 	                    this.addChildren(node, data, fragment.children);
@@ -638,56 +646,62 @@
 	            }
 
 	            fragment.node = node;
-	            fragment.previousData = previousData;
-
 	            return node;
 	        }
 	    }, {
-	        key: 'updateList',
-	        value: function updateList(items, previousItems) {
-	            var _this2 = this;
-
-	            var itemsKeys = items.map(function (item) {
-	                return _this2.getDataId(item);
-	            });
-	            var previousItemsKeys = previousItems.map(function (item) {
-	                return _this2.getDataId(item);
-	            });
-
-	            var oldItems = [];
-	            var newItems = [];
+	        key: 'getUpdatedItems',
+	        value: function getUpdatedItems() {
+	            var items = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+	            var previousItems = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
 
 	            var changes = [];
 
+	            for (var i = 0, len = items.length; i < len; i++) {
+	                if (previousItems[i]) {
+	                    changes.push({
+	                        type: ITEMS_TO_UPDATE,
+	                        data: items[i],
+	                        previous: previousItems[i]
+	                    });
+	                } else {
+	                    changes.push({
+	                        type: ITEMS_TO_ADD,
+	                        data: items[i]
+	                    });
+	                }
+	            }
+
+	            if (previousItems.length > items.length) {
+	                changes.length = previousItems.length;
+	                changes.fill({ type: ITEMS_TO_DELETE }, items.length);
+	            }
+
+	            return changes;
+	        }
+	    }, {
+	        key: 'addChildren',
+	        value: function addChildren(node, data, fragmentChildren) {
+	            var _this2 = this;
+
+	            var children = fragmentChildren.map(function (item) {
+	                return _this2.createFragmentNode(item, data);
+	            }).filter(function (item) {
+	                return item && true;
+	            });
+	            _PlainDom2.default.appendChildren(node, children);
+	        }
+	    }, {
+	        key: 'updateChildren',
+	        value: function updateChildren(list, data, previousData) {
 	            var _iteratorNormalCompletion3 = true;
 	            var _didIteratorError3 = false;
 	            var _iteratorError3 = undefined;
 
 	            try {
-	                for (var _iterator3 = itemsKeys[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-	                    var _step3$value = _slicedToArray(_step3.value, 2);
+	                for (var _iterator3 = list[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+	                    var child = _step3.value;
 
-	                    var key = _step3$value[0];
-	                    var i = _step3$value[1];
-
-	                    if (previousItemsKeys[i]) {
-	                        if (key === previousItemsKeys[i]) {
-	                            changes.push({
-	                                type: ITEM_EQUALS
-	                            });
-	                        } else {
-	                            changes.push({
-	                                type: ITEM_TO_UPDATE,
-	                                data: items[i],
-	                                previous: previousItems[i]
-	                            });
-	                        }
-	                    } else {
-	                        changes.push({
-	                            type: ITEM_TO_ADD,
-	                            data: items[i]
-	                        });
-	                    }
+	                    this.updateFragment(child, data, previousData);
 	                }
 	            } catch (err) {
 	                _didIteratorError3 = true;
@@ -703,33 +717,10 @@
 	                    }
 	                }
 	            }
-
-	            if (previousItems.length > items.length) {
-	                changes.length = previousItems.length;
-	                changes.fill({ type: ITEM_TO_DELETE }, items.length);
-	            }
-
-	            console.log(changes);
 	        }
 	    }, {
-	        key: 'getDataId',
-	        value: function getDataId(data) {
-	            return (0, _utils.isObject)(data) ? data.key || JSON.stringify(data) : ('' + data).toLowerCase();
-	        }
-	    }, {
-	        key: 'addChildren',
-	        value: function addChildren(node, data, list) {
-	            var _this3 = this;
-
-	            _PlainDom2.default.appendChildren(node, list.map(function (item) {
-	                return _this3.createFragmentNode(item, data);
-	            }).filter(function (item) {
-	                return item && true;
-	            }));
-	        }
-	    }, {
-	        key: 'updateChildren',
-	        value: function updateChildren(list, data) {
+	        key: 'deleteChildren',
+	        value: function deleteChildren(node, list) {
 	            var _iteratorNormalCompletion4 = true;
 	            var _didIteratorError4 = false;
 	            var _iteratorError4 = undefined;
@@ -738,7 +729,7 @@
 	                for (var _iterator4 = list[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
 	                    var child = _step4.value;
 
-	                    this.updateFragment(child, data);
+	                    this.deleteFragment(node, child);
 	                }
 	            } catch (err) {
 	                _didIteratorError4 = true;
@@ -756,60 +747,32 @@
 	            }
 	        }
 	    }, {
-	        key: 'deleteChildren',
-	        value: function deleteChildren(list) {
-	            var _iteratorNormalCompletion5 = true;
-	            var _didIteratorError5 = false;
-	            var _iteratorError5 = undefined;
-
-	            try {
-	                for (var _iterator5 = list[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-	                    var child = _step5.value;
-
-	                    this.deleteFragment(child);
-	                }
-	            } catch (err) {
-	                _didIteratorError5 = true;
-	                _iteratorError5 = err;
-	            } finally {
-	                try {
-	                    if (!_iteratorNormalCompletion5 && _iterator5.return) {
-	                        _iterator5.return();
-	                    }
-	                } finally {
-	                    if (_didIteratorError5) {
-	                        throw _iteratorError5;
-	                    }
-	                }
-	            }
-	        }
-	    }, {
 	        key: 'setAttributesData',
 	        value: function setAttributesData(fragment, data) {
 	            if (fragment.hasAttributesData) {
 	                var attributes = Object.keys(fragment.attributesData);
-	                var _iteratorNormalCompletion6 = true;
-	                var _didIteratorError6 = false;
-	                var _iteratorError6 = undefined;
+	                var _iteratorNormalCompletion5 = true;
+	                var _didIteratorError5 = false;
+	                var _iteratorError5 = undefined;
 
 	                try {
-	                    for (var _iterator6 = attributes[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-	                        var key = _step6.value;
+	                    for (var _iterator5 = attributes[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+	                        var key = _step5.value;
 
 	                        var value = fragment.attributesData[key];
 	                        fragment.attributes[key] = data[value.substring(1)];
 	                    }
 	                } catch (err) {
-	                    _didIteratorError6 = true;
-	                    _iteratorError6 = err;
+	                    _didIteratorError5 = true;
+	                    _iteratorError5 = err;
 	                } finally {
 	                    try {
-	                        if (!_iteratorNormalCompletion6 && _iterator6.return) {
-	                            _iterator6.return();
+	                        if (!_iteratorNormalCompletion5 && _iterator5.return) {
+	                            _iterator5.return();
 	                        }
 	                    } finally {
-	                        if (_didIteratorError6) {
-	                            throw _iteratorError6;
+	                        if (_didIteratorError5) {
+	                            throw _iteratorError5;
 	                        }
 	                    }
 	                }
@@ -817,17 +780,17 @@
 	        }
 	    }, {
 	        key: 'deleteFragment',
-	        value: function deleteFragment(fragment) {
-	            fragment.node && _PlainDom2.default.removeChild(fragment.node.parentNode, fragment.node);
-	            fragment = null;
+	        value: function deleteFragment(node, fragment) {
+	            fragment.node && _PlainDom2.default.removeChild(node, fragment.node);
 	        }
 	    }, {
 	        key: 'updateFragment',
-	        value: function updateFragment(fragment, data) {
-	            var _this4 = this;
+	        value: function updateFragment(fragment, data, previousData) {
+	            var _this3 = this;
 
 	            fragment = fragment || this.fragment;
 	            data = data || this.data;
+	            previousData = previousData || this.previousData;
 
 	            if (fragment.type === 'string') {
 	                return;
@@ -838,13 +801,18 @@
 
 	            if (options.from) {
 	                data = data[options.from];
+	                previousData = previousData[options.from];
 	            }
 
 	            this.setAttributesData(fragment, data);
 	            _PlainDom2.default.setAttributes(node, fragment.attributes);
 
 	            if (options.content) {
-	                this.updateContent(node, data[options.content], options.type);
+	                var content = data[options.content];
+
+	                if (content !== previousData[options.content]) {
+	                    this.updateContent(node, content, options.type);
+	                }
 	            }
 
 	            if (fragment.children) {
@@ -852,21 +820,51 @@
 	                    (function () {
 	                        var to = options['to'] || 'item';
 	                        var list = data[options['for-each']];
-	                        var docFragment = _PlainDom2.default.createDocumentFragment();
+	                        var prevList = previousData[options['for-each']];
+	                        var items = _this3.getUpdatedItems(list, prevList);
+	                        var fragments = [];
 
-	                        _PlainDom2.default.removeChildren(node);
+	                        items.forEach(function (item, i) {
+	                            var children = fragment.renderedChildren[i] || [];
 
-	                        list.forEach(function (item) {
-	                            var itemData = Object.assign({}, data);
-	                            itemData[to] = item;
+	                            switch (item.type) {
+	                                case ITEMS_TO_DELETE:
+	                                    _this3.deleteChildren(node, children);
+	                                    break;
 
-	                            _this4.addChildren(docFragment, itemData, fragment.children);
+	                                case ITEMS_TO_ADD:
+	                                    var itemChildren = (0, _utils.copyArray)(fragment.children);
+	                                    (function () {
+	                                        var itemData = Object.assign({}, data);
+	                                        itemData[to] = item.data;
+
+	                                        _this3.addChildren(node, itemData, itemChildren);
+	                                        fragments.push(itemChildren);
+	                                    })();
+	                                    break;
+
+	                                case ITEMS_TO_UPDATE:
+	                                    (function () {
+	                                        var itemData = Object.assign({}, data);
+	                                        itemData[to] = item.data;
+
+	                                        var itemPreviousData = Object.assign({}, previousData);
+	                                        itemPreviousData[to] = item.previous;
+
+	                                        _this3.updateChildren(children, itemData, itemPreviousData);
+	                                        fragments.push(children);
+	                                    })();
+	                                    break;
+
+	                                default:
+	                                    fragments.push(children);
+	                            }
 	                        });
 
-	                        _PlainDom2.default.appendChild(node, docFragment);
+	                        fragment.renderedChildren = fragments;
 	                    })();
 	                } else {
-	                    this.updateChildren(fragment.children, data);
+	                    this.updateChildren(fragment.children, data, previousData);
 	                }
 	            }
 	        }
@@ -896,6 +894,7 @@
 	    name: null,
 	    attributes: null,
 	    children: null,
+	    renderedChildren: null,
 	    options: null
 	};
 	PlainRenderer.options = {
@@ -1032,7 +1031,6 @@
 	    _createClass(Page, [{
 	        key: 'onMount',
 	        value: function onMount(node) {
-	            console.log('!!! Mounted Page');
 	            node.querySelector('.button').addEventListener('click', this.onClick);
 
 	            this.setData({
@@ -1040,9 +1038,15 @@
 	                header: 'Update page header!!!',
 	                list: {
 	                    items: [{
-	                        name: '111'
+	                        name: 'Updated One'
 	                    }, {
-	                        name: '222'
+	                        name: 'Updated Two'
+	                    }, {
+	                        name: 'Updated Three'
+	                    }, {
+	                        name: 'Add Four'
+	                    }, {
+	                        name: 'Add Five'
 	                    }]
 	                }
 	            });
@@ -1168,7 +1172,6 @@
 	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(Button)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.defaultProps = {
 	            label: ''
 	        }, _this.onClick = function () {
-	            _this.data.label = 'Clicked!!!';
 	            _this.update();
 	        }, _temp), _possibleConstructorReturn(_this, _ret);
 	    }
@@ -1176,7 +1179,6 @@
 	    _createClass(Button, [{
 	        key: 'onMount',
 	        value: function onMount(node) {
-	            console.log('!!! Mounted Button');
 	            node.addEventListener('click', this.onClick);
 	        }
 	    }]);
@@ -1196,7 +1198,7 @@
 /* 10 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\":className\">\r\n    <h1>\r\n        <span content=\"title\"></span> №<span from=\"counter\" content=\"first\"></span>\r\n    </h1>\r\n    <div class=\"header\" content=\"header\"></div>\r\n    <p class=\"content\">\r\n        <span content=\"body\"></span>\r\n        <span content=\"button\" type=\"element\"></span>\r\n    </p>\r\n    <ul class=\"list\" from=\"list\" for-each=\"items\" to=\"item\">\r\n        <li from=\"item\">\r\n            <span content=\"name\"></span>\r\n        </li>\r\n    </ul>\r\n    <div class=\"footer\" content=\"footer\"></div>\r\n</div>";
+	module.exports = "<div class=\":className\">\n    <h1>\n        <span content=\"title\"></span> №<span from=\"counter\" content=\"first\"></span>\n    </h1>\n    <div class=\"header\" content=\"header\"></div>\n    <p class=\"content\">\n        <span content=\"body\"></span>\n        <span content=\"button\" type=\"element\"></span>\n    </p>\n    <ul class=\"list\" from=\"list\" for-each=\"items\" to=\"item\">\n        <li from=\"item\">\n            <span content=\"name\"></span>\n        </li>\n    </ul>\n    <div class=\"footer\" content=\"footer\"></div>\n</div>";
 
 /***/ }
 /******/ ]);

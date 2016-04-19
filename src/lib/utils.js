@@ -20,6 +20,8 @@ export function copyArray(source, target = []) {
     for (var i = 0, len = source.length; i < len; i++) {
         if (Array.isArray(source[i])) {
             target[i] = copyArray(source[i]);
+        } else if (isObject(source[i])) {
+            target[i] = copyObject(source[i]);
         } else {
             target[i] = source[i];
         }

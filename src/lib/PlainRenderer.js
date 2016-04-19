@@ -1,6 +1,11 @@
 import PlainDom from './PlainDom';
 import PlainObserver from './PlainObserver';
-import {isObject, copyObject} from './utils';
+import {isObject, copyObject, copyArray} from './utils';
+
+const ITEMS_EQUALS = 0;
+const ITEMS_TO_DELETE = -1;
+const ITEMS_TO_ADD = 1;
+const ITEMS_TO_UPDATE = 2;
 
 export default class PlainRenderer {
 
@@ -8,6 +13,7 @@ export default class PlainRenderer {
         name: null,
         attributes: null,
         children: null,
+        renderedChildren: null,
         options: null
     };
 
@@ -36,10 +42,7 @@ export default class PlainRenderer {
 
         if (null === this.fragment) {
             this.fragment = this.createFragmentFromTemplate();
-            console.log(this.fragment);
-
             this.node = this.createFragmentNode();
-            console.log(this.node);
         } else {
             this.updateFragment();
         }
@@ -136,8 +139,6 @@ export default class PlainRenderer {
             data = data[options.from];
         }
 
-        let previousData = data;
-
         this.setAttributesData(fragment, data);
 
         let node = PlainDom.createElement(fragment.name, fragment.attributes);
@@ -150,52 +151,40 @@ export default class PlainRenderer {
             if (options['for-each']) {
                 let to = options['to'] || 'item';
                 let list = data[options['for-each']];
-                let docFragment = PlainDom.createDocumentFragment();
+                let fragments = [];
 
                 list.forEach((item) => {
+                    let itemChildren = copyArray(fragment.children);
                     let itemData = Object.assign({}, data);
                     itemData[to] = item;
 
-                    this.addChildren(docFragment, itemData, fragment.children);
+                    this.addChildren(node, itemData, itemChildren);
+                    fragments.push(itemChildren);
                 });
 
-                PlainDom.appendChild(node, docFragment);
+                fragment.renderedChildren = fragments;
             } else {
                 this.addChildren(node, data, fragment.children);
             }
         }
 
         fragment.node = node;
-        fragment.previousData = previousData;
-
         return node;
     }
 
-    updateList(items, previousItems) {
-        let itemsKeys = items.map(item => this.getDataId(item));
-        let previousItemsKeys = previousItems.map(item => this.getDataId(item));
-
-        let oldItems = [];
-        let newItems = [];
-
+    getUpdatedItems(items = [], previousItems = []) {
         let changes = [];
 
-        for (let [key, i] of itemsKeys) {
-            if (previousItemsKeys[i]) {
-                if (key === previousItemsKeys[i]) {
-                    changes.push({
-                        type: ITEM_EQUALS
-                    });
-                } else {
-                    changes.push({
-                        type: ITEM_TO_UPDATE,
-                        data: items[i],
-                        previous: previousItems[i]
-                    });
-                }
+        for (var i = 0, len = items.length; i < len; i++) {
+            if (previousItems[i]) {
+                changes.push({
+                    type: ITEMS_TO_UPDATE,
+                    data: items[i],
+                    previous: previousItems[i]
+                });
             } else {
                 changes.push({
-                    type: ITEM_TO_ADD,
+                    type: ITEMS_TO_ADD,
                     data: items[i]
                 })
             }
@@ -203,33 +192,30 @@ export default class PlainRenderer {
 
         if (previousItems.length > items.length) {
             changes.length = previousItems.length;
-            changes.fill({type: ITEM_TO_DELETE}, items.length);
+            changes.fill({type: ITEMS_TO_DELETE}, items.length);
         }
 
-        console.log(changes);
+        return changes;
     }
 
-    getDataId(data) {
-        return isObject(data) ? (data.key || JSON.stringify(data)) : ('' + data).toLowerCase();
-    }
-
-    addChildren(node, data, list) {
-        PlainDom.appendChildren(node, list.map(
+    addChildren(node, data, fragmentChildren) {
+        let children = fragmentChildren.map(
             (item) => this.createFragmentNode(item, data)
         ).filter(
             (item) => item && true
-        ));
+        );
+        PlainDom.appendChildren(node, children);
     }
 
-    updateChildren(list, data) {
+    updateChildren(list, data, previousData) {
         for (let child of list) {
-            this.updateFragment(child, data);
+            this.updateFragment(child, data, previousData);
         }
     }
 
-    deleteChildren(list) {
+    deleteChildren(node, list) {
         for (let child of list) {
-            this.deleteFragment(child);
+            this.deleteFragment(node, child);
         }
     }
 
@@ -243,14 +229,14 @@ export default class PlainRenderer {
         }
     }
 
-    deleteFragment(fragment) {
-        fragment.node && PlainDom.removeChild(fragment.node.parentNode, fragment.node);
-        fragment = null;
+    deleteFragment(node, fragment) {
+        fragment.node && PlainDom.removeChild(node, fragment.node);
     }
 
-    updateFragment(fragment, data) {
+    updateFragment(fragment, data, previousData) {
         fragment = fragment || this.fragment;
         data = data || this.data;
+        previousData = previousData || this.previousData;
 
         if (fragment.type === 'string') {
             return;
@@ -261,33 +247,68 @@ export default class PlainRenderer {
 
         if (options.from) {
             data = data[options.from];
+            previousData = previousData[options.from];
         }
 
         this.setAttributesData(fragment, data);
         PlainDom.setAttributes(node, fragment.attributes);
 
         if (options.content) {
-            this.updateContent(node, data[options.content], options.type);
+            let content = data[options.content];
+
+            if (content !== previousData[options.content]) {
+                this.updateContent(node, content, options.type);
+            }
         }
 
         if (fragment.children) {
             if (options['for-each']) {
                 let to = options['to'] || 'item';
                 let list = data[options['for-each']];
-                let docFragment = PlainDom.createDocumentFragment();
+                let prevList = previousData[options['for-each']];
+                let items = this.getUpdatedItems(list, prevList);
+                let fragments = [];
 
-                PlainDom.removeChildren(node);
+                items.forEach((item, i) => {
+                    let children = fragment.renderedChildren[i] || [];
 
-                list.forEach((item) => {
-                    let itemData = Object.assign({}, data);
-                    itemData[to] = item;
+                    switch (item.type) {
+                        case ITEMS_TO_DELETE:
+                            this.deleteChildren(node, children);
+                        break;
 
-                    this.addChildren(docFragment, itemData, fragment.children);
+                        case ITEMS_TO_ADD:
+                            let itemChildren = copyArray(fragment.children);
+                            (() => {
+                                let itemData = Object.assign({}, data);
+                                itemData[to] = item.data;
+
+                                this.addChildren(node, itemData, itemChildren);
+                                fragments.push(itemChildren);
+                            })();
+                        break;
+
+                        case ITEMS_TO_UPDATE:
+                            (() => {
+                                let itemData = Object.assign({}, data);
+                                itemData[to] = item.data;
+
+                                let itemPreviousData = Object.assign({}, previousData);
+                                itemPreviousData[to] = item.previous;
+
+                                this.updateChildren(children, itemData, itemPreviousData);
+                                fragments.push(children);
+                            })();
+                       break;
+
+                       default:
+                            fragments.push(children);
+                    }
                 });
 
-                PlainDom.appendChild(node, docFragment);
+                fragment.renderedChildren = fragments;
             } else {
-                this.updateChildren(fragment.children, data);
+                this.updateChildren(fragment.children, data, previousData);
             }
         }
     }

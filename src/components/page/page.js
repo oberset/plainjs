@@ -39,7 +39,6 @@ export default class Page extends Plain {
     }
 
     onMount(node) {
-        console.log('!!! Mounted Page');
         node.querySelector('.button').addEventListener('click', this.onClick);
 
         this.setData({
@@ -48,10 +47,19 @@ export default class Page extends Plain {
             list: {
                 items: [
                     {
-                        name: '111'
+                        name: 'Updated One'
                     },
                     {
-                        name: '222'
+                        name: 'Updated Two'
+                    },
+                    {
+                        name: 'Updated Three'
+                    },
+                    {
+                        name: 'Add Four'
+                    },
+                    {
+                        name: 'Add Five'
                     }
                 ]
             }

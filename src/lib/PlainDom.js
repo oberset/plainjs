@@ -64,8 +64,14 @@ export default class PlainDom {
         }
     }
 
-    static getChildren(node) {
-        return toArray(node.childNodes);
+    static getChildren(node, type) {
+        if (!type) {
+            return toArray(node.childNodes);
+        } else {
+            return toArray(node.childNodes).filter(node => {
+                return node.nodeType === type;
+            });
+        }
     }
 
     static getAttributes(node) {
