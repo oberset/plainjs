@@ -14,7 +14,7 @@ export default class PlainRenderer {
         attributes: null,
         content: null,
         children: null,
-        renderedChildren: null,
+        renderedData: null,
         options: null
     };
 
@@ -123,6 +123,7 @@ export default class PlainRenderer {
         result.hasAttributesData = hasAttributesData;
         result.options = options;
         children.length && (result.children = children);
+        result.renderedData = {};
 
         return result;
     }
@@ -165,7 +166,7 @@ export default class PlainRenderer {
                     fragments.push(itemChildren);
                 });
 
-                fragment.renderedChildren = fragments;
+                fragment.renderedData.children = fragments;
             } else {
                 this.addChildren(node, data, fragment.children);
             }
@@ -267,10 +268,11 @@ export default class PlainRenderer {
                 let list = data[options['for-each']];
                 let prevList = previousData[options['for-each']];
                 let items = this.getUpdatedItems(list, prevList);
+                let renderedChildren = fragment.renderedData.children;
                 let fragments = [];
 
                 items.forEach((item, i) => {
-                    let children = fragment.renderedChildren[i] || [];
+                    let children = renderedChildren[i] || [];
 
                     switch (item.type) {
                         case ITEMS_TO_DELETE:
@@ -281,7 +283,7 @@ export default class PlainRenderer {
                             let itemChildren = copyArray(fragment.children);
                             (() => {
                                 let itemData = Object.assign({}, data);
-                                itemData[to] = {key: i, ...item.data};
+                                itemData[to] = item.data;
 
                                 this.addChildren(node, itemData, itemChildren);
                                 fragments.push(itemChildren);
@@ -291,7 +293,7 @@ export default class PlainRenderer {
                         case ITEMS_TO_UPDATE:
                             (() => {
                                 let itemData = Object.assign({}, data);
-                                itemData[to] = {key: i, ...item.data};
+                                itemData[to] = item.data;
 
                                 let itemPreviousData = Object.assign({}, previousData);
                                 itemPreviousData[to] = item.previous;
@@ -306,7 +308,7 @@ export default class PlainRenderer {
                     }
                 });
 
-                fragment.renderedChildren = fragments;
+                renderedChildren = fragments;
             } else {
                 this.updateChildren(fragment.children, data, previousData);
             }
@@ -314,16 +316,22 @@ export default class PlainRenderer {
     }
 
     addContent(node, fragment, content, type) {
-        if (type === 'element') {
-            content.render(node);
-            fragment.content = {
+        if (type === 'component') {
+            let component = content.component;
+            let componentData = content.data || {};
+
+            component.render(node, componentData);
+
+            fragment.renderedData.content = {
                 type: type,
-                component: content
+                component: content.component,
+                data: content.data
             };
         } else {
             let contentNode = PlainDom.createTextNode(content);
             PlainDom.appendChild(node, contentNode);
-            fragment.content = {
+
+            fragment.renderedData.content = {
                 type: type,
                 node: contentNode
             };
@@ -331,10 +339,11 @@ export default class PlainRenderer {
     }
 
     updateContent(fragment, content, type) {
-        if (fragment.content.type !== type) {
-            // todo change type
-        } else if (type !== 'element') {
-            let node = fragment.content.node;
+        if (type === 'component') {
+            let component = fragment.renderedData.content.component;
+            component.update(content.data);
+        } else {
+            let node = fragment.renderedData.content.node;
             let storedContent = PlainDom.getText(node);
             storedContent !== content && PlainDom.setText(node, content);
         }

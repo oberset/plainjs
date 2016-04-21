@@ -1,6 +1,8 @@
 import Plain from '../../lib/Plain';
 import Button from '../button/button';
 import buttonTemplate from '../button/button.html';
+import Item from '../item/item';
+import itemTemplate from '../item/item.html';
 import PlainComponent from '../../lib/PlainComponent';
 
 export default class Page extends Plain {
@@ -8,9 +10,8 @@ export default class Page extends Plain {
     constructor() {
         super();
 
-        this.button = new PlainComponent(Button, buttonTemplate, {
-            label: 'Click here!!!'
-        });
+        this.button = new PlainComponent(buttonTemplate, Button);
+        this.item = new PlainComponent(itemTemplate, Item);
 
         this.setData({
             className: 'main-page',
@@ -21,17 +22,40 @@ export default class Page extends Plain {
             header: 'Page header',
             body: 'Page content here.',
             footer: 'Page footer',
-            button: this.button,
+            button: {
+                component: this.button,
+                data: {
+                    label: 'Click here!!!'
+                }
+            },
             list: {
                 items: [
                     {
-                        name: 'One'
+                        item: {
+                            component: this.item,
+                            data:{
+                                name: 'One',
+                                key: 1
+                            }
+                        }
                     },
                     {
-                        name: 'Two'
+                        item: {
+                            component: this.item,
+                            data:{
+                                name: 'Two',
+                                key: 2
+                            }
+                        }
                     },
                     {
-                        name: 'Three'
+                        item: {
+                            component: this.item,
+                            data:{
+                                name: 'Three',
+                                key: 3
+                            }
+                        }
                     }
                 ]
             }
@@ -45,7 +69,13 @@ export default class Page extends Plain {
 
         for (var i = 0; i < 100; i++) {
             items.push({
-                name: 'Updated ' + i
+                item: {
+                    component: this.item,
+                    data:{
+                        name: 'Name ' + (i + 1),
+                        key: (i + 1)
+                    }
+                }
             });
         }
 

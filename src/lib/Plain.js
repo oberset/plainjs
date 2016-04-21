@@ -23,6 +23,7 @@ export default class Plain {
 
     setData(data) {
         Object.assign(this.data, data);
+        return this;
     }
 
     getData() {

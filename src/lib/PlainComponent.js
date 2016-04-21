@@ -1,38 +1,45 @@
 import PlainDom from './PlainDom';
+import Plain from './Plain';
 import PlainRenderer from './PlainRenderer';
 import PlainObserver from './PlainObserver';
+import { isObject } from './utils';
 
 export default class PlainComponent {
 
-    constructor(ProviderClass, template, data = {}) {
-        this.provider = ProviderClass;
+    constructor(template, ProviderClass) {
+        this.providerClass = ProviderClass;
         this.template = template;
-        this.data = data;
+        this.provider = null;
     }
 
-    render(node) {
-        let ProviderClass = this.provider;
-        let template = this.template;
-        let list = PlainDom.toArray(node);
+    render(node, data) {
+        let fragment = new PlainRenderer(this.template);
+        let provider = new this.providerClass(data);
+        let dataStorage = provider.getData();
 
-        list.forEach((node) => {
-            let provider = new ProviderClass(this.data);
-            let data = provider.getData();
-            let fragment = new PlainRenderer(template);
+        PlainObserver.register(dataStorage, fragment);
+        PlainObserver.update(dataStorage);
 
-            PlainObserver.register(data, fragment);
-            PlainObserver.update(data);
+        if (fragment.node) {
+            provider.onBeforeMount(node);
+            node.appendChild(fragment.node);
+            provider.onMount(node);
+        }
 
-            if (fragment.node) {
-                provider.onBeforeMount(node);
-                node.appendChild(fragment.node);
-                provider.onMount(node);
-            }
-        });
+        this.provider = provider;
     }
 
-    static render(ProviderClass, template, node) {
-        new PlainComponent(ProviderClass, template).render(node);
+    update(data) {
+        this.provider.setData(data).update();
+    }
+
+    static render(template, providerClass, node, data) {
+        if (isObject(providerClass) && data === undefined) {
+            data = providerClass;
+            providerClass = Plain;
+        }
+
+        new PlainComponent(template, providerClass).render(node, data);
     }
 
 }

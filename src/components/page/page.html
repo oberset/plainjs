@@ -6,14 +6,10 @@
     <p class="content">
         <em>Static content here</em><br>
         <span content="body"> <b>Static content inside body container</b></span>
-        <span content="button" type="element"> <b>Static content inside button container</b></span>
+        <span content="button" type="component"> <b>Static content inside button container</b></span>
     </p>
     <ul class="list" from="list" for-each="items" to="item">
-        <li from="item">
-            <p class="list-item">
-                <b>Item <span content="key"></span></b>: <span content="name"></span>
-            </p>
-        </li>
+        <li from="item" content="item" type="component"></li>
     </ul>
     <div class="footer" content="footer"></div>
 </div>
