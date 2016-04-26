@@ -20,7 +20,7 @@ export default class PlainRenderer {
 
     static options = {
         content: true,
-        type: true,
+        component: true,
         from: true,
         to: true,
         'for-each': true
@@ -147,9 +147,8 @@ export default class PlainRenderer {
 
         let node = PlainDom.createElement(fragment.name, fragment.attributes);
 
-        if (options.content) {
-            this.addContent(node, fragment, data[options.content], options.type);
-        }
+        options.content && this.addContent(node, fragment, data[options.content]);
+        options.component && this.addComponent(node, fragment, data[options.component]);
 
         if (fragment.children) {
             if (options['for-each']) {
@@ -157,15 +156,14 @@ export default class PlainRenderer {
                 let list = data[options['for-each']];
                 let fragments = [];
 
-                list.forEach((item, i) => {
+                list.forEach((item) => {
                     let itemChildren = copyArray(fragment.children);
                     let itemData = Object.assign({}, data);
-                    itemData[to] = {key: i, ...item};
+                    itemData[to] = item;
 
                     this.addChildren(node, itemData, itemChildren);
                     fragments.push(itemChildren);
                 });
-
                 fragment.renderedData.children = fragments;
             } else {
                 this.addChildren(node, data, fragment.children);
@@ -176,7 +174,10 @@ export default class PlainRenderer {
         return node;
     }
 
-    getUpdatedItems(items = [], previousItems = []) {
+    getUpdatedItems(items, previousItems) {
+        !Array.isArray(items) && (items = []);
+        !Array.isArray(previousItems) && (previousItems = []);
+
         let changes = [];
 
         for (var i = 0, len = items.length; i < len; i++) {
@@ -257,10 +258,8 @@ export default class PlainRenderer {
         this.setAttributesData(fragment, data);
         PlainDom.setAttributes(node, fragment.attributes);
 
-        if (options.content) {
-            let content = data[options.content];
-            this.updateContent(fragment, content, options.type);
-        }
+        options.content && this.updateContent(node, fragment, data[options.content]);
+        options.component && this.updateComponent(node, fragment, data[options.component]);
 
         if (fragment.children) {
             if (options['for-each']) {
@@ -272,16 +271,18 @@ export default class PlainRenderer {
                 let fragments = [];
 
                 items.forEach((item, i) => {
-                    let children = renderedChildren[i] || [];
-
                     switch (item.type) {
                         case ITEMS_TO_DELETE:
-                            this.deleteChildren(node, children);
+                            (() => {
+                                let itemChildren = renderedChildren[i] || [];
+                                this.deleteChildren(node, itemChildren);
+                            })();
+
                         break;
 
                         case ITEMS_TO_ADD:
-                            let itemChildren = copyArray(fragment.children);
                             (() => {
+                                let itemChildren = fragment.children;
                                 let itemData = Object.assign({}, data);
                                 itemData[to] = item.data;
 
@@ -292,14 +293,15 @@ export default class PlainRenderer {
 
                         case ITEMS_TO_UPDATE:
                             (() => {
+                                let itemChildren = renderedChildren[i] || [];
                                 let itemData = Object.assign({}, data);
                                 itemData[to] = item.data;
 
                                 let itemPreviousData = Object.assign({}, previousData);
                                 itemPreviousData[to] = item.previous;
 
-                                this.updateChildren(children, itemData, itemPreviousData);
-                                fragments.push(children);
+                                this.updateChildren(itemChildren, itemData, itemPreviousData);
+                                fragments.push(itemChildren);
                             })();
                        break;
 
@@ -308,44 +310,45 @@ export default class PlainRenderer {
                     }
                 });
 
-                renderedChildren = fragments;
+                fragment.renderedData.children = fragments;
             } else {
                 this.updateChildren(fragment.children, data, previousData);
             }
         }
     }
 
-    addContent(node, fragment, content, type) {
-        if (type === 'component') {
-            let component = content.component;
-            let componentData = content.data || {};
+    addContent(node, fragment, content) {
+        let contentNode = PlainDom.createTextNode(content);
+        PlainDom.appendChild(node, contentNode);
 
-            component.render(node, componentData);
-
-            fragment.renderedData.content = {
-                type: type,
-                component: content.component,
-                data: content.data
-            };
-        } else {
-            let contentNode = PlainDom.createTextNode(content);
-            PlainDom.appendChild(node, contentNode);
-
-            fragment.renderedData.content = {
-                type: type,
-                node: contentNode
-            };
-        }
+        fragment.renderedData.content = {
+            node: contentNode
+        };
     }
 
-    updateContent(fragment, content, type) {
-        if (type === 'component') {
-            let component = fragment.renderedData.content.component;
-            component.update(content.data);
+    updateContent(node, fragment, content) {
+        let textNode = fragment.renderedData.content.node;
+        PlainDom.getText(textNode) !== content && PlainDom.setText(textNode, content);
+    }
+
+    addComponent(node, fragment, params) {
+        let component = params.component;
+        let data = params.data || {};
+
+        component.render(node, data);
+        fragment.renderedData.component = component;
+    }
+
+    updateComponent(node, fragment, params) {
+        let newComponent = params.component;
+        let oldComponent = fragment.renderedData.component;
+        let update = oldComponent && newComponent.getId() === oldComponent.getId();
+
+        if (update) {
+            oldComponent.update(params.data || {});
         } else {
-            let node = fragment.renderedData.content.node;
-            let storedContent = PlainDom.getText(node);
-            storedContent !== content && PlainDom.setText(node, content);
+            PlainDom.removeChildren(node);
+            this.addComponent(node, fragment, params);
         }
     }
 

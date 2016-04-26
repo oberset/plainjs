@@ -4,12 +4,17 @@ import PlainRenderer from './PlainRenderer';
 import PlainObserver from './PlainObserver';
 import { isObject } from './utils';
 
+const counters = {
+    nextId: 0
+};
+
 export default class PlainComponent {
 
     constructor(template, ProviderClass) {
         this.providerClass = ProviderClass;
         this.template = template;
         this.provider = null;
+        this.id = counters.nextId++;
     }
 
     render(node, data) {
@@ -22,7 +27,7 @@ export default class PlainComponent {
 
         if (fragment.node) {
             provider.onBeforeMount(node);
-            node.appendChild(fragment.node);
+            PlainDom.appendChild(node, fragment.node);
             provider.onMount(node);
         }
 
@@ -30,7 +35,15 @@ export default class PlainComponent {
     }
 
     update(data) {
-        this.provider.setData(data).update();
+        if (this.provider) {
+            this.provider.setData(data).update();
+        } else {
+            throw new Error('Component provider is not defined');
+        }
+    }
+
+    getId() {
+        return this.id;
     }
 
     static render(template, providerClass, node, data) {
@@ -38,7 +51,6 @@ export default class PlainComponent {
             data = providerClass;
             providerClass = Plain;
         }
-
         new PlainComponent(template, providerClass).render(node, data);
     }
 

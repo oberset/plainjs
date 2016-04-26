@@ -1,17 +1,14 @@
 import PlainObserver from './PlainObserver';
-import { isObject, copyObject } from './utils';
+import { isObject, copyObject, mergeObject, T_UNDEF } from './utils';
 
 export default class Plain {
-
-    defaultProps = {};
 
     constructor(data = {}) {
         if (!isObject(data)) {
             throw new Error('Passed "data" must be a plain object');
         }
 
-        let defaultProps = copyObject(this.defaultProps);
-        let props = copyObject(data, defaultProps);
+        let props = copyObject(data);
 
         Object.defineProperty(this, 'data', {
             enumerable: true,
@@ -22,12 +19,12 @@ export default class Plain {
     }
 
     setData(data) {
-        Object.assign(this.data, data);
+        mergeObject(data, this.data);
         return this;
     }
 
-    getData() {
-        return this.data;
+    getData(key) {
+        return key !== T_UNDEF ?  this.data[key] : this.data;
     }
 
     onBeforeMount() {}

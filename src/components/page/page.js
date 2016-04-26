@@ -10,9 +10,6 @@ export default class Page extends Plain {
     constructor() {
         super();
 
-        this.button = new PlainComponent(buttonTemplate, Button);
-        this.item = new PlainComponent(itemTemplate, Item);
-
         this.setData({
             className: 'main-page',
             counter: {
@@ -23,16 +20,24 @@ export default class Page extends Plain {
             body: 'Page content here.',
             footer: 'Page footer',
             button: {
-                component: this.button,
-                data: {
-                    label: 'Click here!!!'
-                }
+                component: new PlainComponent(buttonTemplate, Button)
             },
             list: {
                 items: [
                     {
+                        name: 'First'
+                    },
+                    {
+                        name: 'Second'
+                    },
+                    {
+                        name: 'Third'
+                    }
+                ],
+                componentItems: [
+                    {
                         item: {
-                            component: this.item,
+                            component: new PlainComponent(itemTemplate, Item),
                             data:{
                                 name: 'One',
                                 key: 1
@@ -41,19 +46,10 @@ export default class Page extends Plain {
                     },
                     {
                         item: {
-                            component: this.item,
+                            component: new PlainComponent(itemTemplate, Item),
                             data:{
                                 name: 'Two',
                                 key: 2
-                            }
-                        }
-                    },
-                    {
-                        item: {
-                            component: this.item,
-                            data:{
-                                name: 'Three',
-                                key: 3
                             }
                         }
                     }
@@ -65,31 +61,34 @@ export default class Page extends Plain {
     onMount(node) {
         node.querySelector('.button').addEventListener('click', this.onClick);
 
-        let items = [];
-
-        for (var i = 0; i < 100; i++) {
-            items.push({
-                item: {
-                    component: this.item,
-                    data:{
-                        name: 'Name ' + (i + 1),
-                        key: (i + 1)
-                    }
-                }
-            });
-        }
-
         this.setData({
             className: 'main-page main-page_loaded',
-            header: 'Update page header!!!',
-            list: {
-                items: items
-            }
+            header: 'Update page header!!!'
         });
     }
 
     onClick = () => {
-        this.data.counter.first++;
+
+        let componentItems = this.data.list.componentItems;
+        let count = componentItems.length  + 1;
+        componentItems.push({
+            item: {
+                component: new PlainComponent(itemTemplate, Item),
+                data:{
+                    name: 'Name ' + count,
+                    key: count
+                }
+            }
+        });
+
+        this.data.list.items = null;
+
+        this.setData({
+            counter: {
+                first: this.data.counter.first + 1
+            }
+        });
+
         this.update();
     }
 

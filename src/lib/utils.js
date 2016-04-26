@@ -1,3 +1,5 @@
+export const T_UNDEF = void(0);
+
 export function isObject(obj) {
     return Object.prototype.toString.call(obj) === "[object Object]";
 }
@@ -29,10 +31,29 @@ export function copyArray(source, target = []) {
     return target;
 }
 
+export function mergeObject(source, target = {}) {
+    let keys = Object.keys(source);
+    for (let key of keys) {
+        let newData = source[key];
+        let curData = target[key];
+
+        if (isObject(curData) && isObject(newData)) {
+            mergeObject(newData, curData);
+        } else {
+            target[key] = newData;
+        }
+    }
+    return target;
+}
+
 export function toArray(list) {
     return Array.from(list);
 }
 
 export function isNode(test) {
     return test instanceof Node;
+}
+
+export function isNullOrUndef(test) {
+    return test === null || test === T_UNDEF;
 }
