@@ -1,7 +1,7 @@
 export const T_UNDEF = void(0);
 
 export function isObject(obj) {
-    return Object.prototype.toString.call(obj) === "[object Object]";
+    return obj !== null && Object.prototype.toString.call(obj) === "[object Object]";
 }
 
 export function copyObject(source, target = {}) {
@@ -44,6 +44,20 @@ export function mergeObject(source, target = {}) {
         }
     }
     return target;
+}
+
+export function freezeObject(source) {
+    Object.freeze(source);
+
+    let keys = Object.keys(source);
+    for (let key of keys) {
+        let propObject = source[key];
+        if (null !== propObject && (typeof propObject === "object" || typeof propObject === "function")) {
+            Object.isFrozen(propObject) || freezeObject(propObject);
+        }
+    }
+
+    return source;
 }
 
 export function toArray(list) {

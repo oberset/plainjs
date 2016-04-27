@@ -38,8 +38,8 @@ export default class PlainRenderer {
         return PlainDom.createDocumentFragment(html).firstChild;
     }
 
-    update(data) {
-        this.data = data;
+    update(provider) {
+        this.data = provider.getData();
 
         if (null === this.fragment) {
             this.fragment = this.createFragmentFromTemplate();

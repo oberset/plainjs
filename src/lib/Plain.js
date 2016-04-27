@@ -1,38 +1,50 @@
 import PlainObserver from './PlainObserver';
-import { isObject, copyObject, mergeObject, T_UNDEF } from './utils';
+import { isObject, copyObject, mergeObject, isNullOrUndef } from './utils';
+
+const storage = new WeakMap();
 
 export default class Plain {
 
-    constructor(data = {}) {
-        if (!isObject(data)) {
-            throw new Error('Passed "data" must be a plain object');
-        }
-
-        let props = copyObject(data);
+    constructor(data) {
+        let state = {};
 
         Object.defineProperty(this, 'data', {
             enumerable: true,
-            configurable: false,
-            writable: false,
-            value: props
+            configurable: true,
+            get: () => {
+                throw new Error('Direct access to the property "data" is not allowed. Use method "setData" to update your data.');
+            },
+            set: (data) => {
+                isNullOrUndef(data) && (data = {});
+                let copy = copyObject(this.validate(data));
+                mergeObject(copy, state);
+
+            }
         });
+
+        storage.set(this, state);
+        this.data = data;
+    }
+
+    validate(data) {
+        if (isObject(data)) {
+            return data;
+        } else {
+            throw new Error('"data" must be a plain object');
+        }
     }
 
     setData(data) {
-        mergeObject(data, this.data);
-        return this;
+        this.data = data;
+        PlainObserver.update(this);
     }
 
-    getData(key) {
-        return key !== T_UNDEF ?  this.data[key] : this.data;
+    getData() {
+        return copyObject(storage.get(this));
     }
 
     onBeforeMount() {}
 
     onMount() {}
-
-    update() {
-        PlainObserver.update(this.getData());
-    }
 
 }

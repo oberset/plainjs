@@ -20,10 +20,9 @@ export default class PlainComponent {
     render(node, data) {
         let fragment = new PlainRenderer(this.template);
         let provider = new this.providerClass(data);
-        let dataStorage = provider.getData();
 
-        PlainObserver.register(dataStorage, fragment);
-        PlainObserver.update(dataStorage);
+        PlainObserver.register(provider, fragment);
+        PlainObserver.update(provider);
 
         if (fragment.node) {
             provider.onBeforeMount(node);
@@ -36,7 +35,7 @@ export default class PlainComponent {
 
     update(data) {
         if (this.provider) {
-            this.provider.setData(data).update();
+            this.provider.setData(data);
         } else {
             throw new Error('Component provider is not defined');
         }

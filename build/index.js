@@ -50,20 +50,22 @@
 
 	var _PlainComponent2 = _interopRequireDefault(_PlainComponent);
 
-	var _page = __webpack_require__(7);
+	var _counter = __webpack_require__(7);
 
-	var _page2 = _interopRequireDefault(_page);
+	var _counter2 = _interopRequireDefault(_counter);
 
-	var _page3 = __webpack_require__(12);
+	var _counter3 = __webpack_require__(8);
 
-	var _page4 = _interopRequireDefault(_page3);
+	var _counter4 = _interopRequireDefault(_counter3);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	console.time('render');
-	Array.from(document.querySelectorAll('.container')).forEach(function (node) {
-	    _PlainComponent2.default.render(_page4.default, _page2.default, node);
-	});
+	_PlainComponent2.default.render('<h1 content="hello"></h1>', { hello: 'Hello World!!!' }, document.querySelector('.hello'));
+	console.timeEnd('render');
+
+	console.time('render');
+	_PlainComponent2.default.render(_counter4.default, _counter2.default, document.querySelector('.counter'));
 	console.timeEnd('render');
 
 /***/ },
@@ -119,10 +121,9 @@
 	        value: function render(node, data) {
 	            var fragment = new _PlainRenderer2.default(this.template);
 	            var provider = new this.providerClass(data);
-	            var dataStorage = provider.getData();
 
-	            _PlainObserver2.default.register(dataStorage, fragment);
-	            _PlainObserver2.default.update(dataStorage);
+	            _PlainObserver2.default.register(provider, fragment);
+	            _PlainObserver2.default.update(provider);
 
 	            if (fragment.node) {
 	                provider.onBeforeMount(node);
@@ -136,7 +137,7 @@
 	        key: 'update',
 	        value: function update(data) {
 	            if (this.provider) {
-	                this.provider.setData(data).update();
+	                this.provider.setData(data);
 	            } else {
 	                throw new Error('Component provider is not defined');
 	            }
@@ -378,17 +379,21 @@
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 	exports.isObject = isObject;
 	exports.copyObject = copyObject;
 	exports.copyArray = copyArray;
 	exports.mergeObject = mergeObject;
+	exports.freezeObject = freezeObject;
 	exports.toArray = toArray;
 	exports.isNode = isNode;
 	exports.isNullOrUndef = isNullOrUndef;
 	var T_UNDEF = exports.T_UNDEF = void 0;
 
 	function isObject(obj) {
-	    return Object.prototype.toString.call(obj) === "[object Object]";
+	    return obj !== null && Object.prototype.toString.call(obj) === "[object Object]";
 	}
 
 	function copyObject(source) {
@@ -483,6 +488,41 @@
 	    return target;
 	}
 
+	function freezeObject(source) {
+	    Object.freeze(source);
+
+	    var keys = Object.keys(source);
+	    var _iteratorNormalCompletion3 = true;
+	    var _didIteratorError3 = false;
+	    var _iteratorError3 = undefined;
+
+	    try {
+	        for (var _iterator3 = keys[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+	            var key = _step3.value;
+
+	            var propObject = source[key];
+	            if (null !== propObject && ((typeof propObject === "undefined" ? "undefined" : _typeof(propObject)) === "object" || typeof propObject === "function")) {
+	                Object.isFrozen(propObject) || freezeObject(propObject);
+	            }
+	        }
+	    } catch (err) {
+	        _didIteratorError3 = true;
+	        _iteratorError3 = err;
+	    } finally {
+	        try {
+	            if (!_iteratorNormalCompletion3 && _iterator3.return) {
+	                _iterator3.return();
+	            }
+	        } finally {
+	            if (_didIteratorError3) {
+	                throw _iteratorError3;
+	            }
+	        }
+	    }
+
+	    return source;
+	}
+
 	function toArray(list) {
 	    return Array.from(list);
 	}
@@ -517,36 +557,52 @@
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+	var storage = new WeakMap();
+
 	var Plain = function () {
-	    function Plain() {
-	        var data = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	    function Plain(data) {
+	        var _this = this;
 
 	        _classCallCheck(this, Plain);
 
-	        if (!(0, _utils.isObject)(data)) {
-	            throw new Error('Passed "data" must be a plain object');
-	        }
-
-	        var props = (0, _utils.copyObject)(data);
+	        var state = {};
 
 	        Object.defineProperty(this, 'data', {
 	            enumerable: true,
-	            configurable: false,
-	            writable: false,
-	            value: props
+	            configurable: true,
+	            get: function get() {
+	                throw new Error('Direct access to the property "data" is not allowed. Use method "setData" to update your data.');
+	            },
+	            set: function set(data) {
+	                (0, _utils.isNullOrUndef)(data) && (data = {});
+	                var copy = (0, _utils.copyObject)(_this.validate(data));
+	                (0, _utils.mergeObject)(copy, state);
+	            }
 	        });
+
+	        storage.set(this, state);
+	        this.data = data;
 	    }
 
 	    _createClass(Plain, [{
+	        key: 'validate',
+	        value: function validate(data) {
+	            if ((0, _utils.isObject)(data)) {
+	                return data;
+	            } else {
+	                throw new Error('"data" must be a plain object');
+	            }
+	        }
+	    }, {
 	        key: 'setData',
 	        value: function setData(data) {
-	            (0, _utils.mergeObject)(data, this.data);
-	            return this;
+	            this.data = data;
+	            _PlainObserver2.default.update(this);
 	        }
 	    }, {
 	        key: 'getData',
-	        value: function getData(key) {
-	            return key !== _utils.T_UNDEF ? this.data[key] : this.data;
+	        value: function getData() {
+	            return (0, _utils.copyObject)(storage.get(this));
 	        }
 	    }, {
 	        key: 'onBeforeMount',
@@ -554,11 +610,6 @@
 	    }, {
 	        key: 'onMount',
 	        value: function onMount() {}
-	    }, {
-	        key: 'update',
-	        value: function update() {
-	            _PlainObserver2.default.update(this.getData());
-	        }
 	    }]);
 
 	    return Plain;
@@ -661,8 +712,8 @@
 	        }
 	    }, {
 	        key: 'update',
-	        value: function update(data) {
-	            this.data = data;
+	        value: function update(provider) {
+	            this.data = provider.getData();
 
 	            if (null === this.fragment) {
 	                this.fragment = this.createFragmentFromTemplate();
@@ -1136,31 +1187,9 @@
 	    value: true
 	});
 
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 	var _Plain2 = __webpack_require__(4);
 
 	var _Plain3 = _interopRequireDefault(_Plain2);
-
-	var _button = __webpack_require__(8);
-
-	var _button2 = _interopRequireDefault(_button);
-
-	var _button3 = __webpack_require__(9);
-
-	var _button4 = _interopRequireDefault(_button3);
-
-	var _item = __webpack_require__(10);
-
-	var _item2 = _interopRequireDefault(_item);
-
-	var _item3 = __webpack_require__(11);
-
-	var _item4 = _interopRequireDefault(_item3);
-
-	var _PlainComponent = __webpack_require__(1);
-
-	var _PlainComponent2 = _interopRequireDefault(_PlainComponent);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1170,208 +1199,43 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var Page = function (_Plain) {
-	    _inherits(Page, _Plain);
+	var Counter = function (_Plain) {
+	    _inherits(Counter, _Plain);
 
-	    function Page() {
-	        _classCallCheck(this, Page);
+	    function Counter() {
+	        _classCallCheck(this, Counter);
 
-	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Page).call(this));
+	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Counter).call(this));
 
-	        _this.onClick = function () {
-
-	            var componentItems = _this.data.list.componentItems;
-	            var count = componentItems.length + 1;
-	            componentItems.push({
-	                item: {
-	                    component: new _PlainComponent2.default(_item4.default, _item2.default),
-	                    data: {
-	                        name: 'Name ' + count,
-	                        key: count
-	                    }
-	                }
-	            });
-
-	            _this.data.list.items = null;
-
-	            _this.setData({
-	                counter: {
-	                    first: _this.data.counter.first + 1
-	                }
-	            });
-
-	            _this.update();
-	        };
+	        _this.counter = 0;
 
 	        _this.setData({
-	            className: 'main-page',
-	            counter: {
-	                first: 1
-	            },
-	            title: 'Page title',
-	            header: 'Page header',
-	            body: 'Page content here.',
-	            footer: 'Page footer',
-	            button: {
-	                component: new _PlainComponent2.default(_button4.default, _button2.default)
-	            },
-	            list: {
-	                items: [{
-	                    name: 'First'
-	                }, {
-	                    name: 'Second'
-	                }, {
-	                    name: 'Third'
-	                }],
-	                componentItems: [{
-	                    item: {
-	                        component: new _PlainComponent2.default(_item4.default, _item2.default),
-	                        data: {
-	                            name: 'One',
-	                            key: 1
-	                        }
-	                    }
-	                }, {
-	                    item: {
-	                        component: new _PlainComponent2.default(_item4.default, _item2.default),
-	                        data: {
-	                            name: 'Two',
-	                            key: 2
-	                        }
-	                    }
-	                }]
-	            }
+	            elemClass: 'counter__elem',
+	            counter: _this.counter++
 	        });
+
+	        //Don't work
+	        var data = _this.getData();
+	        data.counter = 10000;
+
+	        setInterval(function () {
+	            _this.setData({
+	                counter: _this.counter++
+	            });
+	        }, 1000);
 	        return _this;
 	    }
 
-	    _createClass(Page, [{
-	        key: 'onMount',
-	        value: function onMount(node) {
-	            node.querySelector('.button').addEventListener('click', this.onClick);
-
-	            this.setData({
-	                className: 'main-page main-page_loaded',
-	                header: 'Update page header!!!'
-	            });
-	        }
-	    }]);
-
-	    return Page;
+	    return Counter;
 	}(_Plain3.default);
 
-	exports.default = Page;
+	exports.default = Counter;
 
 /***/ },
 /* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	    value: true
-	});
-
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-	var _Plain2 = __webpack_require__(4);
-
-	var _Plain3 = _interopRequireDefault(_Plain2);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var Button = function (_Plain) {
-	    _inherits(Button, _Plain);
-
-	    function Button() {
-	        _classCallCheck(this, Button);
-
-	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Button).call(this));
-
-	        _this.onClick = function () {
-	            _this.setData({
-	                label: 'Clicked!!!'
-	            });
-	            _this.update();
-	        };
-
-	        _this.setData({
-	            label: 'Click here!!!'
-	        });
-	        return _this;
-	    }
-
-	    _createClass(Button, [{
-	        key: 'onMount',
-	        value: function onMount(node) {
-	            node.addEventListener('click', this.onClick);
-	        }
-	    }]);
-
-	    return Button;
-	}(_Plain3.default);
-
-	exports.default = Button;
-
-/***/ },
-/* 9 */
 /***/ function(module, exports) {
 
-	module.exports = "<button class=\"button\" content=\"label\"></button>";
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-
-	var _Plain2 = __webpack_require__(4);
-
-	var _Plain3 = _interopRequireDefault(_Plain2);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var Item = function (_Plain) {
-	  _inherits(Item, _Plain);
-
-	  function Item() {
-	    _classCallCheck(this, Item);
-
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Item).apply(this, arguments));
-	  }
-
-	  return Item;
-	}(_Plain3.default);
-
-	exports.default = Item;
-
-/***/ },
-/* 11 */
-/***/ function(module, exports) {
-
-	module.exports = "<p class=\"list-item\">\n    <b>Item <span content=\"key\"></span></b>: <span content=\"name\"></span>\n</p>";
-
-/***/ },
-/* 12 */
-/***/ function(module, exports) {
-
-	module.exports = "<div class=\":className\">\n    <h1>\n        <span content=\"title\"></span> №<span from=\"counter\" content=\"first\"></span>\n    </h1>\n    <div class=\"header\" content=\"header\"> <b>Static content inside header container</b></div>\n    <p class=\"content\">\n        <em>Static content here</em><br>\n        <span content=\"body\"> <b>Static content inside body container</b></span>\n        <span component=\"button\"> <b>Static content inside button container</b></span>\n    </p>\n    <ol class=\"list\" from=\"list\" for-each=\"items\" to=\"item\">\n        <li from=\"item\" content=\"name\"></li>\n    </ol>\n    <ul class=\"list\" from=\"list\" for-each=\"componentItems\" to=\"item\">\n        <li from=\"item\" component=\"item\"></li>\n    </ul>\n    <div class=\"footer\" content=\"footer\"></div>\n</div>";
+	module.exports = "<div class=\":elemClass\">\r\n    Counter: <span content=\"counter\"></span>\r\n</div>";
 
 /***/ }
 /******/ ]);
