@@ -24,11 +24,9 @@ export default class PlainComponent {
         PlainObserver.register(provider, fragment);
         PlainObserver.update(provider);
 
-        if (fragment.node) {
-            provider.onBeforeMount(node);
-            PlainDom.appendChild(node, fragment.node);
-            provider.onMount(node);
-        }
+        provider.onBeforeMount(node);
+        fragment.node && PlainDom.appendChild(node, fragment.node);
+        provider.onMount(node);
 
         this.provider = provider;
     }

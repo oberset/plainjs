@@ -18,7 +18,6 @@ export default class Plain {
                 isNullOrUndef(data) && (data = {});
                 let copy = copyObject(this.validate(data));
                 mergeObject(copy, state);
-
             }
         });
 

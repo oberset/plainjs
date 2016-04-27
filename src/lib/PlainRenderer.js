@@ -1,6 +1,6 @@
 import PlainDom from './PlainDom';
 import PlainObserver from './PlainObserver';
-import {isObject, copyObject, copyArray} from './utils';
+import {isObject, copyObject, copyArray, isNullOrUndef} from './utils';
 
 const ITEMS_EQUALS = 0;
 const ITEMS_TO_DELETE = -1;
@@ -12,7 +12,6 @@ export default class PlainRenderer {
     static fragmentData = {
         name: null,
         attributes: null,
-        content: null,
         children: null,
         renderedData: null,
         options: null
@@ -23,7 +22,15 @@ export default class PlainRenderer {
         component: true,
         from: true,
         to: true,
-        'for-each': true
+        'for-each': true,
+        match: true,
+        exists: true,
+        eq: true,
+        'not-eq': true,
+        gt: true,
+        gte: true,
+        lt: true,
+        lte: true
     };
 
     constructor(template) {
@@ -122,8 +129,8 @@ export default class PlainRenderer {
         result.attributesData = attributesData;
         result.hasAttributesData = hasAttributesData;
         result.options = options;
-        children.length && (result.children = children);
         result.renderedData = {};
+        result.children = children;
 
         return result;
     }
@@ -133,14 +140,17 @@ export default class PlainRenderer {
         data = data || this.data;
 
         if (fragment.type === 'string') {
-            fragment.node = PlainDom.createTextNode(fragment.value);
-            return fragment.node;
+            return (fragment.node = PlainDom.createTextNode(fragment.value));
         }
 
         let options = fragment.options || {};
 
         if (options.from) {
             data = data[options.from];
+        }
+
+        if (options.match && !this.matchData(options, data[options.match])) {
+            return null;
         }
 
         this.setAttributesData(fragment, data);
@@ -150,28 +160,47 @@ export default class PlainRenderer {
         options.content && this.addContent(node, fragment, data[options.content]);
         options.component && this.addComponent(node, fragment, data[options.component]);
 
-        if (fragment.children) {
-            if (options['for-each']) {
-                let to = options['to'] || 'item';
-                let list = data[options['for-each']];
-                let fragments = [];
+        if (options['for-each']) {
+            let to = options['to'] || 'item';
+            let list = data[options['for-each']];
+            let fragments = [];
 
-                list.forEach((item) => {
-                    let itemChildren = copyArray(fragment.children);
-                    let itemData = Object.assign({}, data);
-                    itemData[to] = item;
+            list.forEach((item) => {
+                let itemChildren = copyArray(fragment.children);
+                let itemData = Object.assign({}, data);
+                itemData[to] = item;
 
-                    this.addChildren(node, itemData, itemChildren);
-                    fragments.push(itemChildren);
-                });
-                fragment.renderedData.children = fragments;
-            } else {
-                this.addChildren(node, data, fragment.children);
-            }
+                this.addChildren(node, itemData, itemChildren);
+                fragments.push(itemChildren);
+            });
+            fragment.renderedData.children = fragments;
+        } else {
+            this.addChildren(node, data, fragment.children);
         }
 
-        fragment.node = node;
-        return node;
+        return (fragment.node = node);
+    }
+
+    matchData(options, data) {
+        if (options.exists) {
+
+            return !isNullOrUndef(data);
+
+        } else if (options.eq) {
+
+            switch (typeof data) {
+                case 'string':
+                case 'boolean':
+                case 'number':
+                case 'undefined':
+                    return options.eq === data.toString();
+                break;
+
+                case 'object':
+                    return (options.eq === 'null' && data === null) || (options.eq === 'object' && data !== null);
+                break;
+            }
+        }
     }
 
     getUpdatedItems(items, previousItems) {
@@ -209,12 +238,27 @@ export default class PlainRenderer {
         ).filter(
             (item) => item && true
         );
-        PlainDom.appendChildren(node, children);
+        children.length && PlainDom.appendChildren(node, children);
     }
 
-    updateChildren(list, data, previousData) {
+    updateChildren(node, list, data, previousData) {
+        let updatedNodes = [];
+        let needUpdate = false;
+
         for (let child of list) {
-            this.updateFragment(child, data, previousData);
+            let currentNode = child.node;
+            let updatedNode = this.updateFragment(child, data, previousData);
+
+            if (child.type === 'element' && !needUpdate) {
+                needUpdate = currentNode !== updatedNode;
+            }
+
+            updatedNode && updatedNodes.push(updatedNode);
+        }
+
+        if (needUpdate) {
+            PlainDom.removeChildren(node);
+            PlainDom.appendChildren(node, updatedNodes);
         }
     }
 
@@ -244,15 +288,24 @@ export default class PlainRenderer {
         previousData = previousData || this.previousData;
 
         if (fragment.type === 'string') {
-            return;
+            return null;
         }
 
-        let node = fragment.node;
+        let node = fragment.node || this.createFragmentNode(fragment, data);
+
+        if (null === node) {
+            return null;
+        }
+
         let options = fragment.options;
 
         if (options.from) {
             data = data[options.from];
             previousData = previousData[options.from];
+        }
+
+        if (options.match && !this.matchData(options, data[options.match])) {
+            return (fragment.node = null);
         }
 
         this.setAttributesData(fragment, data);
@@ -261,60 +314,60 @@ export default class PlainRenderer {
         options.content && this.updateContent(node, fragment, data[options.content]);
         options.component && this.updateComponent(node, fragment, data[options.component]);
 
-        if (fragment.children) {
-            if (options['for-each']) {
-                let to = options['to'] || 'item';
-                let list = data[options['for-each']];
-                let prevList = previousData[options['for-each']];
-                let items = this.getUpdatedItems(list, prevList);
-                let renderedChildren = fragment.renderedData.children;
-                let fragments = [];
+        if (options['for-each']) {
+            let to = options['to'] || 'item';
+            let list = data[options['for-each']];
+            let prevList = previousData[options['for-each']];
+            let items = this.getUpdatedItems(list, prevList);
+            let renderedChildren = fragment.renderedData.children ? fragment.renderedData.children : [];
+            let fragments = [];
 
-                items.forEach((item, i) => {
-                    switch (item.type) {
-                        case ITEMS_TO_DELETE:
-                            (() => {
-                                let itemChildren = renderedChildren[i] || [];
-                                this.deleteChildren(node, itemChildren);
-                            })();
+            items.forEach((item, i) => {
+                switch (item.type) {
+                    case ITEMS_TO_DELETE:
+                        (() => {
+                            let itemChildren = renderedChildren[i] || [];
+                            this.deleteChildren(node, itemChildren);
+                        })();
 
-                        break;
+                    break;
 
-                        case ITEMS_TO_ADD:
-                            (() => {
-                                let itemChildren = fragment.children;
-                                let itemData = Object.assign({}, data);
-                                itemData[to] = item.data;
+                    case ITEMS_TO_ADD:
+                        (() => {
+                            let itemChildren = fragment.children;
+                            let itemData = Object.assign({}, data);
+                            itemData[to] = item.data;
 
-                                this.addChildren(node, itemData, itemChildren);
-                                fragments.push(itemChildren);
-                            })();
-                        break;
+                            this.addChildren(node, itemData, itemChildren);
+                            fragments.push(itemChildren);
+                        })();
+                    break;
 
-                        case ITEMS_TO_UPDATE:
-                            (() => {
-                                let itemChildren = renderedChildren[i] || [];
-                                let itemData = Object.assign({}, data);
-                                itemData[to] = item.data;
+                    case ITEMS_TO_UPDATE:
+                        (() => {
+                            let itemChildren = renderedChildren[i] || [];
+                            let itemData = Object.assign({}, data);
+                            itemData[to] = item.data;
 
-                                let itemPreviousData = Object.assign({}, previousData);
-                                itemPreviousData[to] = item.previous;
+                            let itemPreviousData = Object.assign({}, previousData);
+                            itemPreviousData[to] = item.previous;
 
-                                this.updateChildren(itemChildren, itemData, itemPreviousData);
-                                fragments.push(itemChildren);
-                            })();
-                       break;
+                            this.updateChildren(node, itemChildren, itemData, itemPreviousData);
+                            fragments.push(itemChildren);
+                        })();
+                   break;
 
-                       default:
-                            fragments.push(children);
-                    }
-                });
+                   default:
+                        fragments.push(children);
+                }
+            });
 
-                fragment.renderedData.children = fragments;
-            } else {
-                this.updateChildren(fragment.children, data, previousData);
-            }
+            fragment.renderedData.children = fragments;
+        } else {
+            this.updateChildren(node, fragment.children, data, previousData);
         }
+
+        return node;
     }
 
     addContent(node, fragment, content) {

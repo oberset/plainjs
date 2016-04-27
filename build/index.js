@@ -58,14 +58,26 @@
 
 	var _counter4 = _interopRequireDefault(_counter3);
 
+	var _test = __webpack_require__(9);
+
+	var _test2 = _interopRequireDefault(_test);
+
+	var _test3 = __webpack_require__(10);
+
+	var _test4 = _interopRequireDefault(_test3);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	console.time('render');
-	_PlainComponent2.default.render('<h1 content="hello"></h1>', { hello: 'Hello World!!!' }, document.querySelector('.hello'));
-	console.timeEnd('render');
+	/*console.time('render');
+	PlainComponent.render('<h1 content="hello"></h1>', {hello: 'Hello World!!!'}, document.querySelector('.hello'));
+	console.timeEnd('render');*/
 
 	console.time('render');
 	_PlainComponent2.default.render(_counter4.default, _counter2.default, document.querySelector('.counter'));
+	console.timeEnd('render');
+
+	console.time('render');
+	_PlainComponent2.default.render(_test4.default, _test2.default, document.querySelector('.test'));
 	console.timeEnd('render');
 
 /***/ },
@@ -125,11 +137,9 @@
 	            _PlainObserver2.default.register(provider, fragment);
 	            _PlainObserver2.default.update(provider);
 
-	            if (fragment.node) {
-	                provider.onBeforeMount(node);
-	                _PlainDom2.default.appendChild(node, fragment.node);
-	                provider.onMount(node);
-	            }
+	            provider.onBeforeMount(node);
+	            fragment.node && _PlainDom2.default.appendChild(node, fragment.node);
+	            provider.onMount(node);
 
 	            this.provider = provider;
 	        }
@@ -673,6 +683,8 @@
 	    value: true
 	});
 
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 	var _PlainDom = __webpack_require__(2);
@@ -841,8 +853,8 @@
 	            result.attributesData = attributesData;
 	            result.hasAttributesData = hasAttributesData;
 	            result.options = options;
-	            children.length && (result.children = children);
 	            result.renderedData = {};
+	            result.children = children;
 
 	            return result;
 	        }
@@ -855,14 +867,17 @@
 	            data = data || this.data;
 
 	            if (fragment.type === 'string') {
-	                fragment.node = _PlainDom2.default.createTextNode(fragment.value);
-	                return fragment.node;
+	                return fragment.node = _PlainDom2.default.createTextNode(fragment.value);
 	            }
 
 	            var options = fragment.options || {};
 
 	            if (options.from) {
 	                data = data[options.from];
+	            }
+
+	            if (options.match && !this.matchData(options, data[options.match])) {
+	                return null;
 	            }
 
 	            this.setAttributesData(fragment, data);
@@ -872,30 +887,49 @@
 	            options.content && this.addContent(node, fragment, data[options.content]);
 	            options.component && this.addComponent(node, fragment, data[options.component]);
 
-	            if (fragment.children) {
-	                if (options['for-each']) {
-	                    (function () {
-	                        var to = options['to'] || 'item';
-	                        var list = data[options['for-each']];
-	                        var fragments = [];
+	            if (options['for-each']) {
+	                (function () {
+	                    var to = options['to'] || 'item';
+	                    var list = data[options['for-each']];
+	                    var fragments = [];
 
-	                        list.forEach(function (item) {
-	                            var itemChildren = (0, _utils.copyArray)(fragment.children);
-	                            var itemData = Object.assign({}, data);
-	                            itemData[to] = item;
+	                    list.forEach(function (item) {
+	                        var itemChildren = (0, _utils.copyArray)(fragment.children);
+	                        var itemData = Object.assign({}, data);
+	                        itemData[to] = item;
 
-	                            _this.addChildren(node, itemData, itemChildren);
-	                            fragments.push(itemChildren);
-	                        });
-	                        fragment.renderedData.children = fragments;
-	                    })();
-	                } else {
-	                    this.addChildren(node, data, fragment.children);
-	                }
+	                        _this.addChildren(node, itemData, itemChildren);
+	                        fragments.push(itemChildren);
+	                    });
+	                    fragment.renderedData.children = fragments;
+	                })();
+	            } else {
+	                this.addChildren(node, data, fragment.children);
 	            }
 
-	            fragment.node = node;
-	            return node;
+	            return fragment.node = node;
+	        }
+	    }, {
+	        key: 'matchData',
+	        value: function matchData(options, data) {
+	            if (options.exists) {
+
+	                return !(0, _utils.isNullOrUndef)(data);
+	            } else if (options.eq) {
+
+	                switch (typeof data === 'undefined' ? 'undefined' : _typeof(data)) {
+	                    case 'string':
+	                    case 'boolean':
+	                    case 'number':
+	                    case 'undefined':
+	                        return options.eq === data.toString();
+	                        break;
+
+	                    case 'object':
+	                        return options.eq === 'null' && data === null || options.eq === 'object' && data !== null;
+	                        break;
+	                }
+	            }
 	        }
 	    }, {
 	        key: 'getUpdatedItems',
@@ -937,11 +971,14 @@
 	            }).filter(function (item) {
 	                return item && true;
 	            });
-	            _PlainDom2.default.appendChildren(node, children);
+	            children.length && _PlainDom2.default.appendChildren(node, children);
 	        }
 	    }, {
 	        key: 'updateChildren',
-	        value: function updateChildren(list, data, previousData) {
+	        value: function updateChildren(node, list, data, previousData) {
+	            var updatedNodes = [];
+	            var needUpdate = false;
+
 	            var _iteratorNormalCompletion3 = true;
 	            var _didIteratorError3 = false;
 	            var _iteratorError3 = undefined;
@@ -950,7 +987,14 @@
 	                for (var _iterator3 = list[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
 	                    var child = _step3.value;
 
-	                    this.updateFragment(child, data, previousData);
+	                    var currentNode = child.node;
+	                    var updatedNode = this.updateFragment(child, data, previousData);
+
+	                    if (child.type === 'element' && !needUpdate) {
+	                        needUpdate = currentNode !== updatedNode;
+	                    }
+
+	                    updatedNode && updatedNodes.push(updatedNode);
 	                }
 	            } catch (err) {
 	                _didIteratorError3 = true;
@@ -965,6 +1009,11 @@
 	                        throw _iteratorError3;
 	                    }
 	                }
+	            }
+
+	            if (needUpdate) {
+	                _PlainDom2.default.removeChildren(node);
+	                _PlainDom2.default.appendChildren(node, updatedNodes);
 	            }
 	        }
 	    }, {
@@ -1042,15 +1091,24 @@
 	            previousData = previousData || this.previousData;
 
 	            if (fragment.type === 'string') {
-	                return;
+	                return null;
 	            }
 
-	            var node = fragment.node;
+	            var node = fragment.node || this.createFragmentNode(fragment, data);
+
+	            if (null === node) {
+	                return null;
+	            }
+
 	            var options = fragment.options;
 
 	            if (options.from) {
 	                data = data[options.from];
 	                previousData = previousData[options.from];
+	            }
+
+	            if (options.match && !this.matchData(options, data[options.match])) {
+	                return fragment.node = null;
 	            }
 
 	            this.setAttributesData(fragment, data);
@@ -1059,62 +1117,62 @@
 	            options.content && this.updateContent(node, fragment, data[options.content]);
 	            options.component && this.updateComponent(node, fragment, data[options.component]);
 
-	            if (fragment.children) {
-	                if (options['for-each']) {
-	                    (function () {
-	                        var to = options['to'] || 'item';
-	                        var list = data[options['for-each']];
-	                        var prevList = previousData[options['for-each']];
-	                        var items = _this3.getUpdatedItems(list, prevList);
-	                        var renderedChildren = fragment.renderedData.children;
-	                        var fragments = [];
+	            if (options['for-each']) {
+	                (function () {
+	                    var to = options['to'] || 'item';
+	                    var list = data[options['for-each']];
+	                    var prevList = previousData[options['for-each']];
+	                    var items = _this3.getUpdatedItems(list, prevList);
+	                    var renderedChildren = fragment.renderedData.children ? fragment.renderedData.children : [];
+	                    var fragments = [];
 
-	                        items.forEach(function (item, i) {
-	                            switch (item.type) {
-	                                case ITEMS_TO_DELETE:
-	                                    (function () {
-	                                        var itemChildren = renderedChildren[i] || [];
-	                                        _this3.deleteChildren(node, itemChildren);
-	                                    })();
+	                    items.forEach(function (item, i) {
+	                        switch (item.type) {
+	                            case ITEMS_TO_DELETE:
+	                                (function () {
+	                                    var itemChildren = renderedChildren[i] || [];
+	                                    _this3.deleteChildren(node, itemChildren);
+	                                })();
 
-	                                    break;
+	                                break;
 
-	                                case ITEMS_TO_ADD:
-	                                    (function () {
-	                                        var itemChildren = fragment.children;
-	                                        var itemData = Object.assign({}, data);
-	                                        itemData[to] = item.data;
+	                            case ITEMS_TO_ADD:
+	                                (function () {
+	                                    var itemChildren = fragment.children;
+	                                    var itemData = Object.assign({}, data);
+	                                    itemData[to] = item.data;
 
-	                                        _this3.addChildren(node, itemData, itemChildren);
-	                                        fragments.push(itemChildren);
-	                                    })();
-	                                    break;
+	                                    _this3.addChildren(node, itemData, itemChildren);
+	                                    fragments.push(itemChildren);
+	                                })();
+	                                break;
 
-	                                case ITEMS_TO_UPDATE:
-	                                    (function () {
-	                                        var itemChildren = renderedChildren[i] || [];
-	                                        var itemData = Object.assign({}, data);
-	                                        itemData[to] = item.data;
+	                            case ITEMS_TO_UPDATE:
+	                                (function () {
+	                                    var itemChildren = renderedChildren[i] || [];
+	                                    var itemData = Object.assign({}, data);
+	                                    itemData[to] = item.data;
 
-	                                        var itemPreviousData = Object.assign({}, previousData);
-	                                        itemPreviousData[to] = item.previous;
+	                                    var itemPreviousData = Object.assign({}, previousData);
+	                                    itemPreviousData[to] = item.previous;
 
-	                                        _this3.updateChildren(itemChildren, itemData, itemPreviousData);
-	                                        fragments.push(itemChildren);
-	                                    })();
-	                                    break;
+	                                    _this3.updateChildren(node, itemChildren, itemData, itemPreviousData);
+	                                    fragments.push(itemChildren);
+	                                })();
+	                                break;
 
-	                                default:
-	                                    fragments.push(children);
-	                            }
-	                        });
+	                            default:
+	                                fragments.push(children);
+	                        }
+	                    });
 
-	                        fragment.renderedData.children = fragments;
-	                    })();
-	                } else {
-	                    this.updateChildren(fragment.children, data, previousData);
-	                }
+	                    fragment.renderedData.children = fragments;
+	                })();
+	            } else {
+	                this.updateChildren(node, fragment.children, data, previousData);
 	            }
+
+	            return node;
 	        }
 	    }, {
 	        key: 'addContent',
@@ -1163,7 +1221,6 @@
 	PlainRenderer.fragmentData = {
 	    name: null,
 	    attributes: null,
-	    content: null,
 	    children: null,
 	    renderedData: null,
 	    options: null
@@ -1173,7 +1230,15 @@
 	    component: true,
 	    from: true,
 	    to: true,
-	    'for-each': true
+	    'for-each': true,
+	    match: true,
+	    exists: true,
+	    eq: true,
+	    'not-eq': true,
+	    gt: true,
+	    gte: true,
+	    lt: true,
+	    lte: true
 	};
 	exports.default = PlainRenderer;
 
@@ -1236,6 +1301,66 @@
 /***/ function(module, exports) {
 
 	module.exports = "<div class=\":elemClass\">\r\n    Counter: <span content=\"counter\"></span>\r\n</div>";
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _Plain2 = __webpack_require__(4);
+
+	var _Plain3 = _interopRequireDefault(_Plain2);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var Test = function (_Plain) {
+	    _inherits(Test, _Plain);
+
+	    function Test() {
+	        _classCallCheck(this, Test);
+
+	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Test).call(this));
+
+	        _this.setData({
+	            'test-true': false,
+	            'test-false': true,
+	            'test-exists': null
+	        });
+
+	        setInterval(function () {
+
+	            var data = _this.getData();
+
+	            _this.setData({
+	                'test-true': !data['test-true'],
+	                'test-false': !data['test-false'],
+	                'test-exists': data['test-exists'] === null ? '' : null
+	            });
+	        }, 1000);
+	        return _this;
+	    }
+
+	    return Test;
+	}(_Plain3.default);
+
+	exports.default = Test;
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	module.exports = "<div>\r\n    <div match=\"test-true\" eq=\"true\">Show if true</div>\r\n    <div match=\"test-false\" eq=\"false\">Show if false</div>\r\n    <div match=\"test-exists\" exists=\"exists\">Show if exists</div>\r\n</div>\r\n";
 
 /***/ }
 /******/ ]);
