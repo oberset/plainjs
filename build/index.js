@@ -732,7 +732,7 @@
 	                this.node = this.createFragmentNode();
 	            } else {
 	                console.time('updateFragment');
-	                this.updateFragment();
+	                this.updateFragmentNode();
 	                console.timeEnd('updateFragment');
 	            }
 
@@ -876,7 +876,7 @@
 	                data = data[options.from];
 	            }
 
-	            if (options.match && !this.matchData(options, data[options.match])) {
+	            if (options.match && !this.match(options, data[options.match])) {
 	                return null;
 	            }
 
@@ -910,8 +910,107 @@
 	            return fragment.node = node;
 	        }
 	    }, {
-	        key: 'matchData',
-	        value: function matchData(options, data) {
+	        key: 'updateFragmentNode',
+	        value: function updateFragmentNode(fragment, data, previousData) {
+	            var _this2 = this;
+
+	            fragment = fragment || this.fragment;
+	            data = data || this.data;
+	            previousData = previousData || this.previousData;
+
+	            if (fragment.type === 'string') {
+	                return null;
+	            }
+
+	            var node = fragment.node || this.createFragmentNode(fragment, data);
+
+	            if (null === node) {
+	                return null;
+	            }
+
+	            var options = fragment.options;
+
+	            if (options.from) {
+	                data = data[options.from];
+	                previousData = previousData[options.from];
+	            }
+
+	            if (options.match && !this.match(options, data[options.match])) {
+	                return fragment.node = null;
+	            }
+
+	            this.setAttributesData(fragment, data);
+	            _PlainDom2.default.setAttributes(node, fragment.attributes);
+
+	            options.content && this.updateContent(node, fragment, data[options.content]);
+	            options.component && this.updateComponent(node, fragment, data[options.component]);
+
+	            if (options['for-each']) {
+	                (function () {
+	                    var to = options['to'] || 'item';
+	                    var list = data[options['for-each']];
+	                    var prevList = previousData[options['for-each']];
+	                    var items = _this2.getUpdatedItems(list, prevList);
+	                    var renderedChildren = fragment.renderedData.children ? fragment.renderedData.children : [];
+	                    var fragments = [];
+
+	                    items.forEach(function (item, i) {
+	                        switch (item.type) {
+	                            case ITEMS_TO_DELETE:
+	                                (function () {
+	                                    var itemChildren = renderedChildren[i] || [];
+	                                    _this2.deleteChildren(node, itemChildren);
+	                                })();
+
+	                                break;
+
+	                            case ITEMS_TO_ADD:
+	                                (function () {
+	                                    var itemChildren = fragment.children;
+	                                    var itemData = Object.assign({}, data);
+	                                    itemData[to] = item.data;
+
+	                                    _this2.addChildren(node, itemData, itemChildren);
+	                                    fragments.push(itemChildren);
+	                                })();
+	                                break;
+
+	                            case ITEMS_TO_UPDATE:
+	                                (function () {
+	                                    var itemChildren = renderedChildren[i] || [];
+	                                    var itemData = Object.assign({}, data);
+	                                    itemData[to] = item.data;
+
+	                                    var itemPreviousData = Object.assign({}, previousData);
+	                                    itemPreviousData[to] = item.previous;
+
+	                                    _this2.updateChildren(node, itemChildren, itemData, itemPreviousData);
+	                                    fragments.push(itemChildren);
+	                                })();
+	                                break;
+
+	                            default:
+	                                fragments.push(children);
+	                        }
+	                    });
+
+	                    fragment.renderedData.children = fragments;
+	                })();
+	            } else {
+	                this.updateChildren(node, fragment.children, data, previousData);
+	            }
+
+	            return node;
+	        }
+	    }, {
+	        key: 'deleteFragmentNode',
+	        value: function deleteFragmentNode(node, fragment) {
+	            fragment.node && _PlainDom2.default.removeChild(node, fragment.node);
+	            fragment.node = null;
+	        }
+	    }, {
+	        key: 'match',
+	        value: function match(options, data) {
 	            if (options.exists) {
 
 	                return !(0, _utils.isNullOrUndef)(data);
@@ -928,6 +1027,35 @@
 	                    case 'object':
 	                        return options.eq === 'null' && data === null || options.eq === 'object' && data !== null;
 	                        break;
+	                }
+	            } else {
+	                var _arr = ['lt', 'gt', 'lte', 'gte'];
+
+
+	                for (var _i = 0; _i < _arr.length; _i++) {
+	                    var type = _arr[_i];
+	                    if (_utils.T_UNDEF !== options[type]) {
+	                        var test = parseFloat(options[type]);
+	                        var val = parseFloat(data);
+
+	                        switch (type) {
+	                            case 'lt':
+	                                return test > val;
+	                                break;
+
+	                            case 'lte':
+	                                return test >= val;
+	                                break;
+
+	                            case 'gt':
+	                                return test < val;
+	                                break;
+
+	                            case 'gte':
+	                                return test <= val;
+	                                break;
+	                        }
+	                    }
 	                }
 	            }
 	        }
@@ -962,12 +1090,44 @@
 	            return changes;
 	        }
 	    }, {
+	        key: 'setAttributesData',
+	        value: function setAttributesData(fragment, data) {
+	            if (fragment.hasAttributesData) {
+	                var attributes = Object.keys(fragment.attributesData);
+	                var _iteratorNormalCompletion3 = true;
+	                var _didIteratorError3 = false;
+	                var _iteratorError3 = undefined;
+
+	                try {
+	                    for (var _iterator3 = attributes[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+	                        var key = _step3.value;
+
+	                        var value = fragment.attributesData[key];
+	                        fragment.attributes[key] = data[value.substring(1)];
+	                    }
+	                } catch (err) {
+	                    _didIteratorError3 = true;
+	                    _iteratorError3 = err;
+	                } finally {
+	                    try {
+	                        if (!_iteratorNormalCompletion3 && _iterator3.return) {
+	                            _iterator3.return();
+	                        }
+	                    } finally {
+	                        if (_didIteratorError3) {
+	                            throw _iteratorError3;
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    }, {
 	        key: 'addChildren',
 	        value: function addChildren(node, data, fragmentChildren) {
-	            var _this2 = this;
+	            var _this3 = this;
 
 	            var children = fragmentChildren.map(function (item) {
-	                return _this2.createFragmentNode(item, data);
+	                return _this3.createFragmentNode(item, data);
 	            }).filter(function (item) {
 	                return item && true;
 	            });
@@ -979,46 +1139,6 @@
 	            var updatedNodes = [];
 	            var needUpdate = false;
 
-	            var _iteratorNormalCompletion3 = true;
-	            var _didIteratorError3 = false;
-	            var _iteratorError3 = undefined;
-
-	            try {
-	                for (var _iterator3 = list[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-	                    var child = _step3.value;
-
-	                    var currentNode = child.node;
-	                    var updatedNode = this.updateFragment(child, data, previousData);
-
-	                    if (child.type === 'element' && !needUpdate) {
-	                        needUpdate = currentNode !== updatedNode;
-	                    }
-
-	                    updatedNode && updatedNodes.push(updatedNode);
-	                }
-	            } catch (err) {
-	                _didIteratorError3 = true;
-	                _iteratorError3 = err;
-	            } finally {
-	                try {
-	                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
-	                        _iterator3.return();
-	                    }
-	                } finally {
-	                    if (_didIteratorError3) {
-	                        throw _iteratorError3;
-	                    }
-	                }
-	            }
-
-	            if (needUpdate) {
-	                _PlainDom2.default.removeChildren(node);
-	                _PlainDom2.default.appendChildren(node, updatedNodes);
-	            }
-	        }
-	    }, {
-	        key: 'deleteChildren',
-	        value: function deleteChildren(node, list) {
 	            var _iteratorNormalCompletion4 = true;
 	            var _didIteratorError4 = false;
 	            var _iteratorError4 = undefined;
@@ -1027,7 +1147,14 @@
 	                for (var _iterator4 = list[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
 	                    var child = _step4.value;
 
-	                    this.deleteFragment(node, child);
+	                    var currentNode = child.node;
+	                    var updatedNode = this.updateFragmentNode(child, data, previousData);
+
+	                    if (child.type === 'element' && !needUpdate) {
+	                        needUpdate = currentNode !== updatedNode;
+	                    }
+
+	                    updatedNode && updatedNodes.push(updatedNode);
 	                }
 	            } catch (err) {
 	                _didIteratorError4 = true;
@@ -1043,136 +1170,39 @@
 	                    }
 	                }
 	            }
+
+	            if (needUpdate) {
+	                _PlainDom2.default.removeChildren(node);
+	                _PlainDom2.default.appendChildren(node, updatedNodes);
+	            }
 	        }
 	    }, {
-	        key: 'setAttributesData',
-	        value: function setAttributesData(fragment, data) {
-	            if (fragment.hasAttributesData) {
-	                var attributes = Object.keys(fragment.attributesData);
-	                var _iteratorNormalCompletion5 = true;
-	                var _didIteratorError5 = false;
-	                var _iteratorError5 = undefined;
+	        key: 'deleteChildren',
+	        value: function deleteChildren(node, list) {
+	            var _iteratorNormalCompletion5 = true;
+	            var _didIteratorError5 = false;
+	            var _iteratorError5 = undefined;
 
+	            try {
+	                for (var _iterator5 = list[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+	                    var child = _step5.value;
+
+	                    this.deleteFragmentNode(node, child);
+	                }
+	            } catch (err) {
+	                _didIteratorError5 = true;
+	                _iteratorError5 = err;
+	            } finally {
 	                try {
-	                    for (var _iterator5 = attributes[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-	                        var key = _step5.value;
-
-	                        var value = fragment.attributesData[key];
-	                        fragment.attributes[key] = data[value.substring(1)];
+	                    if (!_iteratorNormalCompletion5 && _iterator5.return) {
+	                        _iterator5.return();
 	                    }
-	                } catch (err) {
-	                    _didIteratorError5 = true;
-	                    _iteratorError5 = err;
 	                } finally {
-	                    try {
-	                        if (!_iteratorNormalCompletion5 && _iterator5.return) {
-	                            _iterator5.return();
-	                        }
-	                    } finally {
-	                        if (_didIteratorError5) {
-	                            throw _iteratorError5;
-	                        }
+	                    if (_didIteratorError5) {
+	                        throw _iteratorError5;
 	                    }
 	                }
 	            }
-	        }
-	    }, {
-	        key: 'deleteFragment',
-	        value: function deleteFragment(node, fragment) {
-	            fragment.node && _PlainDom2.default.removeChild(node, fragment.node);
-	        }
-	    }, {
-	        key: 'updateFragment',
-	        value: function updateFragment(fragment, data, previousData) {
-	            var _this3 = this;
-
-	            fragment = fragment || this.fragment;
-	            data = data || this.data;
-	            previousData = previousData || this.previousData;
-
-	            if (fragment.type === 'string') {
-	                return null;
-	            }
-
-	            var node = fragment.node || this.createFragmentNode(fragment, data);
-
-	            if (null === node) {
-	                return null;
-	            }
-
-	            var options = fragment.options;
-
-	            if (options.from) {
-	                data = data[options.from];
-	                previousData = previousData[options.from];
-	            }
-
-	            if (options.match && !this.matchData(options, data[options.match])) {
-	                return fragment.node = null;
-	            }
-
-	            this.setAttributesData(fragment, data);
-	            _PlainDom2.default.setAttributes(node, fragment.attributes);
-
-	            options.content && this.updateContent(node, fragment, data[options.content]);
-	            options.component && this.updateComponent(node, fragment, data[options.component]);
-
-	            if (options['for-each']) {
-	                (function () {
-	                    var to = options['to'] || 'item';
-	                    var list = data[options['for-each']];
-	                    var prevList = previousData[options['for-each']];
-	                    var items = _this3.getUpdatedItems(list, prevList);
-	                    var renderedChildren = fragment.renderedData.children ? fragment.renderedData.children : [];
-	                    var fragments = [];
-
-	                    items.forEach(function (item, i) {
-	                        switch (item.type) {
-	                            case ITEMS_TO_DELETE:
-	                                (function () {
-	                                    var itemChildren = renderedChildren[i] || [];
-	                                    _this3.deleteChildren(node, itemChildren);
-	                                })();
-
-	                                break;
-
-	                            case ITEMS_TO_ADD:
-	                                (function () {
-	                                    var itemChildren = fragment.children;
-	                                    var itemData = Object.assign({}, data);
-	                                    itemData[to] = item.data;
-
-	                                    _this3.addChildren(node, itemData, itemChildren);
-	                                    fragments.push(itemChildren);
-	                                })();
-	                                break;
-
-	                            case ITEMS_TO_UPDATE:
-	                                (function () {
-	                                    var itemChildren = renderedChildren[i] || [];
-	                                    var itemData = Object.assign({}, data);
-	                                    itemData[to] = item.data;
-
-	                                    var itemPreviousData = Object.assign({}, previousData);
-	                                    itemPreviousData[to] = item.previous;
-
-	                                    _this3.updateChildren(node, itemChildren, itemData, itemPreviousData);
-	                                    fragments.push(itemChildren);
-	                                })();
-	                                break;
-
-	                            default:
-	                                fragments.push(children);
-	                        }
-	                    });
-
-	                    fragment.renderedData.children = fragments;
-	                })();
-	            } else {
-	                this.updateChildren(node, fragment.children, data, previousData);
-	            }
-
-	            return node;
 	        }
 	    }, {
 	        key: 'addContent',
@@ -1335,7 +1365,11 @@
 	        _this.setData({
 	            'test-true': false,
 	            'test-false': true,
-	            'test-exists': null
+	            'test-exists': null,
+	            'test-lt': 1,
+	            'test-lte': 1,
+	            'test-gt': 0,
+	            'test-gte': 0
 	        });
 
 	        setInterval(function () {
@@ -1345,7 +1379,11 @@
 	            _this.setData({
 	                'test-true': !data['test-true'],
 	                'test-false': !data['test-false'],
-	                'test-exists': data['test-exists'] === null ? '' : null
+	                'test-exists': data['test-exists'] === null ? '' : null,
+	                'test-lt': data['test-lt'] ? 0 : 1,
+	                'test-lte': data['test-lte'] ? 0 : 1,
+	                'test-gt': data['test-gt'] ? 0 : 1,
+	                'test-gte': data['test-gte'] ? 0 : 1
 	            });
 	        }, 1000);
 	        return _this;
@@ -1360,7 +1398,7 @@
 /* 10 */
 /***/ function(module, exports) {
 
-	module.exports = "<div>\r\n    <div match=\"test-true\" eq=\"true\">Show if true</div>\r\n    <div match=\"test-false\" eq=\"false\">Show if false</div>\r\n    <div match=\"test-exists\" exists=\"exists\">Show if exists</div>\r\n</div>\r\n";
+	module.exports = "<div>\r\n    <div match=\"test-true\" eq=\"true\">Show if true</div>\r\n    <div match=\"test-false\" eq=\"false\">Show if false</div>\r\n    <div match=\"test-exists\" exists=\"exists\">Show if exists</div>\r\n    <div match=\"test-lt\" lt=\"1\">Show if value lt 1</div>\r\n    <div match=\"test-lte\" lte=\"1\">Show if value lte 1</div>\r\n    <div match=\"test-gt\" gt=\"0\">Show if value gt 0</div>\r\n    <div match=\"test-gte\" gte=\"0\">Show if value gte 0</div>\r\n</div>\r\n";
 
 /***/ }
 /******/ ]);
