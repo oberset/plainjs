@@ -31,9 +31,13 @@ export default class PlainComponent {
         this.provider = provider;
     }
 
-    update(data) {
+    update(newData) {
         if (this.provider) {
-            this.provider.setData(data);
+            let provider = this.provider;
+
+            provider.onBeforeUpdate(provider.getData(), newData);
+            provider.setData(newData);
+            provider.onUpdate(newData);
         } else {
             throw new Error('Component provider is not defined');
         }

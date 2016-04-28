@@ -46,4 +46,8 @@ export default class Plain {
 
     onMount() {}
 
+    onBeforeUpdate() {}
+
+    onUpdate() {}
+
 }

@@ -145,9 +145,13 @@
 	        }
 	    }, {
 	        key: 'update',
-	        value: function update(data) {
+	        value: function update(newData) {
 	            if (this.provider) {
-	                this.provider.setData(data);
+	                var provider = this.provider;
+
+	                provider.onBeforeUpdate(provider.getData(), newData);
+	                provider.setData(newData);
+	                provider.onUpdate(newData);
 	            } else {
 	                throw new Error('Component provider is not defined');
 	            }
@@ -620,6 +624,12 @@
 	    }, {
 	        key: 'onMount',
 	        value: function onMount() {}
+	    }, {
+	        key: 'onBeforeUpdate',
+	        value: function onBeforeUpdate() {}
+	    }, {
+	        key: 'onUpdate',
+	        value: function onUpdate() {}
 	    }]);
 
 	    return Plain;
@@ -1342,6 +1352,8 @@
 	    value: true
 	});
 
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
 	var _Plain2 = __webpack_require__(4);
 
 	var _Plain3 = _interopRequireDefault(_Plain2);
@@ -1388,6 +1400,16 @@
 	        }, 1000);
 	        return _this;
 	    }
+
+	    _createClass(Test, [{
+	        key: 'onBeforeUpdate',
+	        value: function onBeforeUpdate(oldData, newData) {
+	            console.log('Old:');
+	            console.log(oldData);
+	            console.log('New:');
+	            console.log(newData);
+	        }
+	    }]);
 
 	    return Test;
 	}(_Plain3.default);
