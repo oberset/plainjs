@@ -270,8 +270,13 @@ export default class PlainRenderer {
     }
 
     deleteFragmentNode(node, fragment) {
-        fragment.node && PlainDom.removeChild(node, fragment.node);
-        fragment.node = null;
+        fragment = fragment || this;
+
+        if (fragment.node) {
+            node = node || PlainDom.getParent(fragment.node);
+            PlainDom.removeChild(node, fragment.node);
+            fragment.node = null;
+        }
     }
 
     match(options, data) {

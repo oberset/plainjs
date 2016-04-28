@@ -114,8 +114,11 @@
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	var counters = {
-	    nextId: 0
+	var counter = function counter() {
+	    var nextValue = 0;
+	    return function () {
+	        return nextValue++;
+	    };
 	};
 
 	var PlainComponent = function () {
@@ -125,7 +128,8 @@
 	        this.providerClass = ProviderClass;
 	        this.template = template;
 	        this.provider = null;
-	        this.id = counters.nextId++;
+	        this.fragment = null;
+	        this.id = this.constructor.getNextId();
 	    }
 
 	    _createClass(PlainComponent, [{
@@ -142,6 +146,7 @@
 	            provider.onMount(node);
 
 	            this.provider = provider;
+	            this.fragment = fragment;
 	        }
 	    }, {
 	        key: 'update',
@@ -154,6 +159,18 @@
 	                provider.onUpdate(newData);
 	            } else {
 	                throw new Error('Component provider is not defined');
+	            }
+	        }
+	    }, {
+	        key: 'destroy',
+	        value: function destroy() {
+	            if (this.fragment) {
+	                this.fragment.deleteFragmentNode();
+	                this.fragment = null;
+	            }
+
+	            if (this.provider) {
+	                this.provider = null;
 	            }
 	        }
 	    }, {
@@ -175,6 +192,7 @@
 	    return PlainComponent;
 	}();
 
+	PlainComponent.getNextId = counter();
 	exports.default = PlainComponent;
 
 /***/ },
@@ -329,6 +347,11 @@
 	                    return node.nodeType === type;
 	                });
 	            }
+	        }
+	    }, {
+	        key: 'getParent',
+	        value: function getParent(node) {
+	            return node.parentNode;
 	        }
 	    }, {
 	        key: 'getAttributes',
@@ -1015,8 +1038,13 @@
 	    }, {
 	        key: 'deleteFragmentNode',
 	        value: function deleteFragmentNode(node, fragment) {
-	            fragment.node && _PlainDom2.default.removeChild(node, fragment.node);
-	            fragment.node = null;
+	            fragment = fragment || this;
+
+	            if (fragment.node) {
+	                node = node || _PlainDom2.default.getParent(fragment.node);
+	                _PlainDom2.default.removeChild(node, fragment.node);
+	                fragment.node = null;
+	            }
 	        }
 	    }, {
 	        key: 'match',
@@ -1352,8 +1380,6 @@
 	    value: true
 	});
 
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 	var _Plain2 = __webpack_require__(4);
 
 	var _Plain3 = _interopRequireDefault(_Plain2);
@@ -1384,6 +1410,8 @@
 	            'test-gte': 0
 	        });
 
+	        var counter = 0;
+
 	        setInterval(function () {
 
 	            var data = _this.getData();
@@ -1400,16 +1428,6 @@
 	        }, 1000);
 	        return _this;
 	    }
-
-	    _createClass(Test, [{
-	        key: 'onBeforeUpdate',
-	        value: function onBeforeUpdate(oldData, newData) {
-	            console.log('Old:');
-	            console.log(oldData);
-	            console.log('New:');
-	            console.log(newData);
-	        }
-	    }]);
 
 	    return Test;
 	}(_Plain3.default);

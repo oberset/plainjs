@@ -15,6 +15,8 @@ export default class Test extends Plain {
             'test-gte': 0
         });
 
+        let counter = 0;
+
         setInterval(() => {
 
             let data = this.getData();

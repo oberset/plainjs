@@ -82,6 +82,10 @@ export default class PlainDom {
         }
     }
 
+    static getParent(node) {
+        return node.parentNode;
+    }
+
     static getAttributes(node) {
         return toArray(node.attributes);
     }
