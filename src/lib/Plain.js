@@ -50,4 +50,6 @@ export default class Plain {
 
     onUpdate() {}
 
+    onDestroy() {}
+
 }

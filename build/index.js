@@ -77,7 +77,11 @@
 	console.timeEnd('render');
 
 	console.time('render');
-	_PlainComponent2.default.render(_test4.default, _test2.default, document.querySelector('.test'));
+	var test = new _PlainComponent2.default(_test4.default, _test2.default);
+	console.log(test.isRendered());
+	test.render(document.querySelector('.test'));
+	console.log(test.isRendered());
+
 	console.timeEnd('render');
 
 /***/ },
@@ -135,18 +139,22 @@
 	    _createClass(PlainComponent, [{
 	        key: 'render',
 	        value: function render(node, data) {
-	            var fragment = new _PlainRenderer2.default(this.template);
-	            var provider = new this.providerClass(data);
+	            if (!this.isRendered()) {
+	                var fragment = new _PlainRenderer2.default(this.template);
+	                var provider = new this.providerClass(data);
 
-	            _PlainObserver2.default.register(provider, fragment);
-	            _PlainObserver2.default.update(provider);
+	                _PlainObserver2.default.register(provider, fragment);
+	                _PlainObserver2.default.update(provider);
 
-	            provider.onBeforeMount(node);
-	            fragment.node && _PlainDom2.default.appendChild(node, fragment.node);
-	            provider.onMount(node);
+	                provider.onBeforeMount(node);
+	                fragment.node && _PlainDom2.default.appendChild(node, fragment.node);
+	                provider.onMount(node);
 
-	            this.provider = provider;
-	            this.fragment = fragment;
+	                this.provider = provider;
+	                this.fragment = fragment;
+	            }
+
+	            return this;
 	        }
 	    }, {
 	        key: 'update',
@@ -160,18 +168,29 @@
 	            } else {
 	                throw new Error('Component provider is not defined');
 	            }
+
+	            return this;
 	        }
 	    }, {
 	        key: 'destroy',
 	        value: function destroy() {
+	            if (this.provider) {
+	                this.provider.onDestroy();
+	                _PlainObserver2.default.unregister(this.provider);
+	                this.provider = null;
+	            }
+
 	            if (this.fragment) {
 	                this.fragment.deleteFragmentNode();
 	                this.fragment = null;
 	            }
 
-	            if (this.provider) {
-	                this.provider = null;
-	            }
+	            return this;
+	        }
+	    }, {
+	        key: 'isRendered',
+	        value: function isRendered() {
+	            return this.provider !== null && this.fragment !== null;
 	        }
 	    }, {
 	        key: 'getId',
@@ -653,6 +672,9 @@
 	    }, {
 	        key: 'onUpdate',
 	        value: function onUpdate() {}
+	    }, {
+	        key: 'onDestroy',
+	        value: function onDestroy() {}
 	    }]);
 
 	    return Plain;
@@ -689,6 +711,13 @@
 	                listeners.push(listener);
 	            }
 	            this.list.set(object, listeners);
+	        }
+	    }, {
+	        key: "unregister",
+	        value: function unregister(object) {
+	            if (this.list.has(object)) {
+	                this.list.delete(object);
+	            }
 	        }
 	    }, {
 	        key: "update",

@@ -22,18 +22,22 @@ export default class PlainComponent {
     }
 
     render(node, data) {
-        let fragment = new PlainRenderer(this.template);
-        let provider = new this.providerClass(data);
+        if (!this.isRendered()) {
+            let fragment = new PlainRenderer(this.template);
+            let provider = new this.providerClass(data);
 
-        PlainObserver.register(provider, fragment);
-        PlainObserver.update(provider);
+            PlainObserver.register(provider, fragment);
+            PlainObserver.update(provider);
 
-        provider.onBeforeMount(node);
-        fragment.node && PlainDom.appendChild(node, fragment.node);
-        provider.onMount(node);
+            provider.onBeforeMount(node);
+            fragment.node && PlainDom.appendChild(node, fragment.node);
+            provider.onMount(node);
 
-        this.provider = provider;
-        this.fragment = fragment;
+            this.provider = provider;
+            this.fragment = fragment;
+        }
+
+        return this;
     }
 
     update(newData) {
@@ -46,17 +50,27 @@ export default class PlainComponent {
         } else {
             throw new Error('Component provider is not defined');
         }
+
+        return this;
     }
 
     destroy() {
+        if (this.provider) {
+            this.provider.onDestroy();
+            PlainObserver.unregister(this.provider);
+            this.provider = null;
+        }
+
         if (this.fragment) {
             this.fragment.deleteFragmentNode();
             this.fragment = null;
         }
 
-        if (this.provider) {
-            this.provider = null;
-        }
+        return this;
+    }
+
+    isRendered() {
+        return (this.provider !== null && this.fragment !== null);
     }
 
     getId() {

@@ -12,6 +12,12 @@ export default class PlainObserver {
         this.list.set(object, listeners);
     }
 
+    static unregister(object) {
+        if (this.list.has(object)) {
+            this.list.delete(object);
+        }
+    }
+
     static update(object) {
         let listeners = this.list.get(object);
         listeners && listeners.forEach(listener => {

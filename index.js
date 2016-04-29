@@ -13,5 +13,9 @@ PlainComponent.render(CounterTemplate, Counter, document.querySelector('.counter
 console.timeEnd('render');
 
 console.time('render');
-PlainComponent.render(TestTemplate, Test, document.querySelector('.test'));
+let test = new PlainComponent(TestTemplate, Test);
+console.log(test.isRendered());
+test.render(document.querySelector('.test'));
+console.log(test.isRendered());
+
 console.timeEnd('render');
