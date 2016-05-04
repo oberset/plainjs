@@ -244,7 +244,7 @@
 	            var frag = doc.createDocumentFragment();
 
 	            if (content) {
-	                if (!(0, _utils.isNode)(content)) {
+	                if (!(0, _utils.isHTMLElement)(content)) {
 	                    var elem = doc.createElement('div');
 	                    elem.innerHTML = '' + content;
 	                    content = elem;
@@ -308,7 +308,7 @@
 	    }, {
 	        key: 'appendChild',
 	        value: function appendChild(node, child) {
-	            !(0, _utils.isNode)(child) && (child = doc.createTextNode(child));
+	            !(0, _utils.isHTMLElement)(child) && (child = doc.createTextNode(child));
 	            node.appendChild(child);
 	        }
 	    }, {
@@ -417,7 +417,7 @@
 	    }, {
 	        key: 'toArray',
 	        value: function toArray(nodelist) {
-	            return (0, _utils.isNode)(nodelist) ? [nodelist] : (0, _utils.toArray)(nodelist);
+	            return (0, _utils.isHTMLElement)(nodelist) ? [nodelist] : (0, _utils.toArray)(nodelist);
 	        }
 	    }]);
 
@@ -430,26 +430,26 @@
 /* 3 */
 /***/ function(module, exports) {
 
-	"use strict";
+	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
 	exports.isObject = isObject;
 	exports.copyObject = copyObject;
 	exports.copyArray = copyArray;
 	exports.mergeObject = mergeObject;
-	exports.freezeObject = freezeObject;
 	exports.toArray = toArray;
-	exports.isNode = isNode;
+	exports.isHTMLElement = isHTMLElement;
 	exports.isNullOrUndef = isNullOrUndef;
 	var T_UNDEF = exports.T_UNDEF = void 0;
 
+	function testObject(obj, proto) {
+	    return obj !== null && Object.prototype.toString.call(obj) === '[object ' + proto + ']';
+	}
+
 	function isObject(obj) {
-	    return obj !== null && Object.prototype.toString.call(obj) === "[object Object]";
+	    return testObject(obj, 'Object');
 	}
 
 	function copyObject(source) {
@@ -544,47 +544,12 @@
 	    return target;
 	}
 
-	function freezeObject(source) {
-	    Object.freeze(source);
-
-	    var keys = Object.keys(source);
-	    var _iteratorNormalCompletion3 = true;
-	    var _didIteratorError3 = false;
-	    var _iteratorError3 = undefined;
-
-	    try {
-	        for (var _iterator3 = keys[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-	            var key = _step3.value;
-
-	            var propObject = source[key];
-	            if (null !== propObject && ((typeof propObject === "undefined" ? "undefined" : _typeof(propObject)) === "object" || typeof propObject === "function")) {
-	                Object.isFrozen(propObject) || freezeObject(propObject);
-	            }
-	        }
-	    } catch (err) {
-	        _didIteratorError3 = true;
-	        _iteratorError3 = err;
-	    } finally {
-	        try {
-	            if (!_iteratorNormalCompletion3 && _iterator3.return) {
-	                _iterator3.return();
-	            }
-	        } finally {
-	            if (_didIteratorError3) {
-	                throw _iteratorError3;
-	            }
-	        }
-	    }
-
-	    return source;
-	}
-
 	function toArray(list) {
 	    return Array.from(list);
 	}
 
-	function isNode(test) {
-	    return test instanceof Node;
+	function isHTMLElement(elem) {
+	    return testObject(elem, 'HTMLHtmlElement');
 	}
 
 	function isNullOrUndef(test) {

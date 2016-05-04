@@ -1,7 +1,11 @@
 export const T_UNDEF = void(0);
 
+function testObject(obj, proto) {
+    return obj !== null && Object.prototype.toString.call(obj) === '[object ' + proto + ']';
+}
+
 export function isObject(obj) {
-    return obj !== null && Object.prototype.toString.call(obj) === "[object Object]";
+    return testObject(obj, 'Object');
 }
 
 export function copyObject(source, target = {}) {
@@ -46,26 +50,12 @@ export function mergeObject(source, target = {}) {
     return target;
 }
 
-export function freezeObject(source) {
-    Object.freeze(source);
-
-    let keys = Object.keys(source);
-    for (let key of keys) {
-        let propObject = source[key];
-        if (null !== propObject && (typeof propObject === "object" || typeof propObject === "function")) {
-            Object.isFrozen(propObject) || freezeObject(propObject);
-        }
-    }
-
-    return source;
-}
-
 export function toArray(list) {
     return Array.from(list);
 }
 
-export function isNode(test) {
-    return test instanceof Node;
+export function isHTMLElement(elem) {
+    return testObject(elem, 'HTMLHtmlElement');
 }
 
 export function isNullOrUndef(test) {

@@ -1,4 +1,4 @@
-import { isNode, toArray } from './utils';
+import { isHTMLElement, toArray } from './utils';
 
 const T_UNDEFINED = void(0);
 const doc = document;
@@ -9,7 +9,7 @@ export default class PlainDom {
         let frag = doc.createDocumentFragment();
 
         if (content) {
-            if (!isNode(content)) {
+            if (!isHTMLElement(content)) {
                 let elem = doc.createElement('div');
                 elem.innerHTML = '' + content;
                 content = elem;
@@ -47,7 +47,7 @@ export default class PlainDom {
     }
 
     static appendChild(node, child) {
-        !isNode(child) && (child = doc.createTextNode(child));
+        !isHTMLElement(child) && (child = doc.createTextNode(child));
         node.appendChild(child);
     }
 
@@ -106,7 +106,7 @@ export default class PlainDom {
     }
 
     static toArray(nodelist) {
-        return isNode(nodelist) ? [nodelist] : toArray(nodelist);
+        return isHTMLElement(nodelist) ? [nodelist] : toArray(nodelist);
     }
 
 }
