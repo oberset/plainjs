@@ -6,6 +6,8 @@ export default class Test extends Plain {
         super();
 
         this.setData({
+            'a': 2,
+            'b': 1,
             'test-true': false,
             'test-false': true,
             'test-exists': null,
@@ -22,6 +24,7 @@ export default class Test extends Plain {
             let data = this.getData();
 
             this.setData({
+                'b': data.b ? 0 : 1,
                 'test-true': !data['test-true'],
                 'test-false': !data['test-false'],
                 'test-exists': data['test-exists'] === null ? '' : null,
@@ -31,6 +34,18 @@ export default class Test extends Plain {
                 'test-gte': data['test-gte'] ? 0 : 1
             });
         }, 1000);
+    }
+
+    onBeforeMount() {
+        console.log('onBeforeMount !!!');
+    }
+
+    onMount() {
+        console.log('onMount !!!');
+    }
+
+    onDestroy() {
+        console.log('onDestroy !!!');
     }
 
 }

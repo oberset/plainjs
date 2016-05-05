@@ -8,7 +8,7 @@ export default class Counter extends Plain {
         this.counter = 0;
 
         this.setData({
-            elemClass: 'counter__elem',
+            cssClass: 'counter',
             counter: this.counter++
         });
 

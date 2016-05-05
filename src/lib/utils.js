@@ -54,10 +54,6 @@ export function toArray(list) {
     return Array.from(list);
 }
 
-export function isHTMLElement(elem) {
-    return testObject(elem, 'HTMLHtmlElement');
-}
-
 export function isNullOrUndef(test) {
     return test === null || test === T_UNDEF;
 }

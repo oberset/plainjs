@@ -1,19 +1,27 @@
-import { isHTMLElement, toArray } from './utils';
+import { toArray, T_UNDEF } from './utils';
 
-const T_UNDEFINED = void(0);
 const doc = document;
+let domParser = null;
 
 export default class PlainDom {
 
-    static createDocumentFragment(content) {
+    static createDocumentFragment(source) {
         let frag = doc.createDocumentFragment();
 
-        if (content) {
-            if (!isHTMLElement(content)) {
-                let elem = doc.createElement('div');
-                elem.innerHTML = '' + content;
-                content = elem;
+        if (source !== T_UNDEF) {
+            let content;
+
+            if (this.isDomNode(source)) {
+                content = source;
+            } else {
+                if ('DOMParser' in window) {
+                    content = (domParser || (domParser = new DOMParser())).parseFromString(source, 'text/html').body;
+                } else {
+                    content = doc.createElement('div');
+                    content.innerHTML = source;
+                }
             }
+
             frag.appendChild(content);
         }
 
@@ -27,7 +35,7 @@ export default class PlainDom {
             let keys = Object.keys(attributes);
             for (let key of keys) {
                 let value = attributes[key];
-                elem.setAttribute(key, (value === T_UNDEFINED ? key : value));
+                elem.setAttribute(key, (value === T_UNDEF ? key : value));
             }
         }
 
@@ -47,7 +55,7 @@ export default class PlainDom {
     }
 
     static appendChild(node, child) {
-        !isHTMLElement(child) && (child = doc.createTextNode(child));
+        !this.isDomNode(child) && (child = doc.createTextNode(child));
         node.appendChild(child);
     }
 
@@ -94,10 +102,10 @@ export default class PlainDom {
         let list = toArray(node.attributes);
 
         for (let attribute of list) {
-            let name = attribute.nodeName;
-            let value = attribute.nodeValue;
+            let name = attribute.name;
+            let value = attribute.value;
 
-            if (T_UNDEFINED === attributes[name]) {
+            if (T_UNDEF === attributes[name]) {
                 node.removeAttribute(name);
             } else if (value !== attributes[name]) {
                 node.setAttribute(name, attributes[name]);
@@ -105,8 +113,12 @@ export default class PlainDom {
         }
     }
 
+    static isDomNode(elem) {
+        return typeof elem === 'object' && elem.nodeType && elem.nodeType > 0;
+    }
+
     static toArray(nodelist) {
-        return isHTMLElement(nodelist) ? [nodelist] : toArray(nodelist);
+        return this.isDomNode(nodelist) ? [nodelist] : toArray(nodelist);
     }
 
 }

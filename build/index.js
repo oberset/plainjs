@@ -66,11 +66,33 @@
 
 	var _test4 = _interopRequireDefault(_test3);
 
+	var _select = __webpack_require__(11);
+
+	var _select2 = _interopRequireDefault(_select);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	/*console.time('render');
 	PlainComponent.render('<h1 content="hello"></h1>', {hello: 'Hello World!!!'}, document.querySelector('.hello'));
 	console.timeEnd('render');*/
+
+	console.time('render');
+	_PlainComponent2.default.render(_select2.default, {
+	    options: [{
+	        value: 1,
+	        label: 'One',
+	        selected: false
+	    }, {
+	        value: 2,
+	        label: 'Two',
+	        selected: true
+	    }, {
+	        value: 3,
+	        label: 'Three',
+	        selected: false
+	    }]
+	}, document.querySelector('.select'));
+	console.timeEnd('render');
 
 	console.time('render');
 	_PlainComponent2.default.render(_counter4.default, _counter2.default, document.querySelector('.counter'));
@@ -81,6 +103,10 @@
 	console.log(test.isRendered());
 	test.render(document.querySelector('.test'));
 	console.log(test.isRendered());
+
+	setTimeout(function () {
+	    test.destroy();
+	}, 10000);
 
 	console.timeEnd('render');
 
@@ -224,14 +250,16 @@
 	    value: true
 	});
 
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 	var _utils = __webpack_require__(3);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	var T_UNDEFINED = void 0;
 	var doc = document;
+	var domParser = null;
 
 	var PlainDom = function () {
 	    function PlainDom() {
@@ -240,15 +268,23 @@
 
 	    _createClass(PlainDom, null, [{
 	        key: 'createDocumentFragment',
-	        value: function createDocumentFragment(content) {
+	        value: function createDocumentFragment(source) {
 	            var frag = doc.createDocumentFragment();
 
-	            if (content) {
-	                if (!(0, _utils.isHTMLElement)(content)) {
-	                    var elem = doc.createElement('div');
-	                    elem.innerHTML = '' + content;
-	                    content = elem;
+	            if (source !== _utils.T_UNDEF) {
+	                var content = void 0;
+
+	                if (this.isDomNode(source)) {
+	                    content = source;
+	                } else {
+	                    if ('DOMParser' in window) {
+	                        content = (domParser || (domParser = new DOMParser())).parseFromString(source, 'text/html').body;
+	                    } else {
+	                        content = doc.createElement('div');
+	                        content.innerHTML = source;
+	                    }
 	                }
+
 	                frag.appendChild(content);
 	            }
 
@@ -270,7 +306,7 @@
 	                        var key = _step.value;
 
 	                        var value = attributes[key];
-	                        elem.setAttribute(key, value === T_UNDEFINED ? key : value);
+	                        elem.setAttribute(key, value === _utils.T_UNDEF ? key : value);
 	                    }
 	                } catch (err) {
 	                    _didIteratorError = true;
@@ -308,7 +344,7 @@
 	    }, {
 	        key: 'appendChild',
 	        value: function appendChild(node, child) {
-	            !(0, _utils.isHTMLElement)(child) && (child = doc.createTextNode(child));
+	            !this.isDomNode(child) && (child = doc.createTextNode(child));
 	            node.appendChild(child);
 	        }
 	    }, {
@@ -390,10 +426,10 @@
 	                for (var _iterator3 = list[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
 	                    var attribute = _step3.value;
 
-	                    var name = attribute.nodeName;
-	                    var value = attribute.nodeValue;
+	                    var name = attribute.name;
+	                    var value = attribute.value;
 
-	                    if (T_UNDEFINED === attributes[name]) {
+	                    if (_utils.T_UNDEF === attributes[name]) {
 	                        node.removeAttribute(name);
 	                    } else if (value !== attributes[name]) {
 	                        node.setAttribute(name, attributes[name]);
@@ -415,9 +451,14 @@
 	            }
 	        }
 	    }, {
+	        key: 'isDomNode',
+	        value: function isDomNode(elem) {
+	            return (typeof elem === 'undefined' ? 'undefined' : _typeof(elem)) === 'object' && elem.nodeType && elem.nodeType > 0;
+	        }
+	    }, {
 	        key: 'toArray',
 	        value: function toArray(nodelist) {
-	            return (0, _utils.isHTMLElement)(nodelist) ? [nodelist] : (0, _utils.toArray)(nodelist);
+	            return this.isDomNode(nodelist) ? [nodelist] : (0, _utils.toArray)(nodelist);
 	        }
 	    }]);
 
@@ -440,7 +481,6 @@
 	exports.copyArray = copyArray;
 	exports.mergeObject = mergeObject;
 	exports.toArray = toArray;
-	exports.isHTMLElement = isHTMLElement;
 	exports.isNullOrUndef = isNullOrUndef;
 	var T_UNDEF = exports.T_UNDEF = void 0;
 
@@ -546,10 +586,6 @@
 
 	function toArray(list) {
 	    return Array.from(list);
-	}
-
-	function isHTMLElement(elem) {
-	    return testObject(elem, 'HTMLHtmlElement');
 	}
 
 	function isNullOrUndef(test) {
@@ -818,8 +854,8 @@
 	                for (var _iterator = attributesIterator[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 	                    var attribute = _step.value;
 
-	                    var attributeName = attribute.nodeName.toLowerCase();
-	                    var attributeValue = attribute.nodeValue;
+	                    var attributeName = attribute.name.toLowerCase();
+	                    var attributeValue = attribute.value;
 
 	                    if (attributeValue.indexOf(':') === 0) {
 	                        attributesData[attributeName] = attributeValue;
@@ -907,6 +943,10 @@
 	                return null;
 	            }
 
+	            if (options.expression && !this.expression(options.expression, data)) {
+	                return null;
+	            }
+
 	            this.setAttributesData(fragment, data);
 
 	            var node = _PlainDom2.default.createElement(fragment.name, fragment.attributes);
@@ -963,6 +1003,10 @@
 	            }
 
 	            if (options.match && !this.match(options, data[options.match])) {
+	                return fragment.node = null;
+	            }
+
+	            if (options.expression && !this.expression(options.expression, data)) {
 	                return fragment.node = null;
 	            }
 
@@ -1045,7 +1089,7 @@
 	        value: function match(options, data) {
 	            if (options.exists) {
 
-	                return !(0, _utils.isNullOrUndef)(data);
+	                return options.exists === 'false' && (0, _utils.isNullOrUndef)(data) || options.exists === 'true' && !(0, _utils.isNullOrUndef)(data);
 	            } else if (options.eq) {
 
 	                switch (typeof data === 'undefined' ? 'undefined' : _typeof(data)) {
@@ -1090,6 +1134,11 @@
 	                    }
 	                }
 	            }
+	        }
+	    }, {
+	        key: 'expression',
+	        value: function expression(expr, data) {
+	            return new Function('data', 'return ' + expr)(data);
 	        }
 	    }, {
 	        key: 'getUpdatedItems',
@@ -1300,7 +1349,8 @@
 	    gt: true,
 	    gte: true,
 	    lt: true,
-	    lte: true
+	    lte: true,
+	    expression: true
 	};
 	exports.default = PlainRenderer;
 
@@ -1337,7 +1387,7 @@
 	        _this.counter = 0;
 
 	        _this.setData({
-	            elemClass: 'counter__elem',
+	            cssClass: 'counter',
 	            counter: _this.counter++
 	        });
 
@@ -1362,7 +1412,7 @@
 /* 8 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\":elemClass\">\r\n    Counter: <span content=\"counter\"></span>\r\n</div>";
+	module.exports = "<div class=\":cssClass\">\n    <span content=\"counter\"></span>\n</div>";
 
 /***/ },
 /* 9 */
@@ -1373,6 +1423,8 @@
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 	var _Plain2 = __webpack_require__(4);
 
@@ -1395,6 +1447,8 @@
 	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Test).call(this));
 
 	        _this.setData({
+	            'a': 2,
+	            'b': 1,
 	            'test-true': false,
 	            'test-false': true,
 	            'test-exists': null,
@@ -1411,6 +1465,7 @@
 	            var data = _this.getData();
 
 	            _this.setData({
+	                'b': data.b ? 0 : 1,
 	                'test-true': !data['test-true'],
 	                'test-false': !data['test-false'],
 	                'test-exists': data['test-exists'] === null ? '' : null,
@@ -1423,6 +1478,23 @@
 	        return _this;
 	    }
 
+	    _createClass(Test, [{
+	        key: 'onBeforeMount',
+	        value: function onBeforeMount() {
+	            console.log('onBeforeMount !!!');
+	        }
+	    }, {
+	        key: 'onMount',
+	        value: function onMount() {
+	            console.log('onMount !!!');
+	        }
+	    }, {
+	        key: 'onDestroy',
+	        value: function onDestroy() {
+	            console.log('onDestroy !!!');
+	        }
+	    }]);
+
 	    return Test;
 	}(_Plain3.default);
 
@@ -1432,7 +1504,13 @@
 /* 10 */
 /***/ function(module, exports) {
 
-	module.exports = "<div>\r\n    <div match=\"test-true\" eq=\"true\">Show if true</div>\r\n    <div match=\"test-false\" eq=\"false\">Show if false</div>\r\n    <div match=\"test-exists\" exists=\"exists\">Show if exists</div>\r\n    <div match=\"test-lt\" lt=\"1\">Show if value lt 1</div>\r\n    <div match=\"test-lte\" lte=\"1\">Show if value lte 1</div>\r\n    <div match=\"test-gt\" gt=\"0\">Show if value gt 0</div>\r\n    <div match=\"test-gte\" gte=\"0\">Show if value gte 0</div>\r\n</div>\r\n";
+	module.exports = "<div class=\"test-example\">\n    <div expression=\"data.a + data.b == 3\">Show if expression 'data.a + data.b == 3'</div>\n    <div match=\"test-true\" eq=\"true\">Show if true</div>\n    <div match=\"test-false\" eq=\"false\">Show if false</div>\n    <div match=\"test-exists\" exists=\"true\">Show if exists</div>\n    <div match=\"test-lt\" lt=\"1\">Show if value lt 1</div>\n    <div match=\"test-lte\" lte=\"1\">Show if value lte 1</div>\n    <div match=\"test-gt\" gt=\"0\">Show if value gt 0</div>\n    <div match=\"test-gte\" gte=\"0\">Show if value gte 0</div>\n</div>\n";
+
+/***/ },
+/* 11 */
+/***/ function(module, exports) {
+
+	module.exports = "<select for-each=\"options\" to=\"option\">\n    <option from=\"option\" match=\"selected\" eq=\"false\" value=\":value\" content=\"label\"></option>\n    <option from=\"option\" match=\"selected\" eq=\"true\" value=\":value\" content=\"label\" selected=\"selected\"></option>\n</select>";
 
 /***/ }
 /******/ ]);

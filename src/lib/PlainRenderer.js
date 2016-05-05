@@ -30,7 +30,8 @@ export default class PlainRenderer {
         gt: true,
         gte: true,
         lt: true,
-        lte: true
+        lte: true,
+        expression: true
     };
 
     constructor(template) {
@@ -102,8 +103,8 @@ export default class PlainRenderer {
         let hasAttributesData = false;
 
         for (let attribute of attributesIterator) {
-            let attributeName = attribute.nodeName.toLowerCase();
-            let attributeValue = attribute.nodeValue;
+            let attributeName = attribute.name.toLowerCase();
+            let attributeValue = attribute.value;
 
             if (attributeValue.indexOf(':') === 0) {
                 attributesData[attributeName] = attributeValue;
@@ -150,6 +151,10 @@ export default class PlainRenderer {
         }
 
         if (options.match && !this.match(options, data[options.match])) {
+            return null;
+        }
+
+        if (options.expression && !this.expression(options.expression, data)) {
             return null;
         }
 
@@ -204,6 +209,10 @@ export default class PlainRenderer {
         }
 
         if (options.match && !this.match(options, data[options.match])) {
+            return (fragment.node = null);
+        }
+
+        if (options.expression && !this.expression(options.expression, data)) {
             return (fragment.node = null);
         }
 
@@ -282,7 +291,7 @@ export default class PlainRenderer {
     match(options, data) {
         if (options.exists) {
 
-            return !isNullOrUndef(data);
+            return (options.exists === 'false' && isNullOrUndef(data)) || (options.exists === 'true' && !isNullOrUndef(data));
 
         } else if (options.eq) {
 
@@ -326,6 +335,10 @@ export default class PlainRenderer {
                 }
             }
         }
+    }
+
+    expression(expr, data) {
+        return (new Function('data', 'return ' + expr))(data);
     }
 
     getUpdatedItems(items, previousItems) {
