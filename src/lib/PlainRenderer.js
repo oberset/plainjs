@@ -54,11 +54,13 @@ export default class PlainRenderer {
             this.node = this.createFragmentNode();
         } else {
             console.time('updateFragment');
-            this.updateFragmentNode();
+            this.node = this.updateFragmentNode();
             console.timeEnd('updateFragment');
         }
 
         this.previousData = copyObject(this.data);
+
+        PlainObserver.update(this);
     }
 
     createFragmentFromTemplate(template) {
@@ -195,7 +197,7 @@ export default class PlainRenderer {
             return null;
         }
 
-        let node = fragment.node || this.createFragmentNode(fragment, data);
+        let node = fragment.node || (fragment.node = this.createFragmentNode(fragment, data));
 
         if (null === node) {
             return null;
@@ -391,20 +393,23 @@ export default class PlainRenderer {
 
     updateChildren(node, list, data, previousData) {
         let updatedNodes = [];
-        let needUpdate = false;
+        let updated = false;
 
         for (let child of list) {
+            if (child.type !== 'element') {
+                continue;
+            }
+
             let currentNode = child.node;
             let updatedNode = this.updateFragmentNode(child, data, previousData);
 
-            if (child.type === 'element' && !needUpdate) {
-                needUpdate = currentNode !== updatedNode;
+            if (currentNode !== updatedNode) {
+                !updated && (updated = true);
+                updatedNode && updatedNodes.push(updatedNode);
             }
-
-            updatedNode && updatedNodes.push(updatedNode);
         }
 
-        if (needUpdate) {
+        if (updated) {
             PlainDom.removeChildren(node);
             PlainDom.appendChildren(node, updatedNodes);
         }

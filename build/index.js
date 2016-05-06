@@ -151,15 +151,46 @@
 	    };
 	};
 
+	var DomUpdater = function () {
+	    function DomUpdater(node, provider) {
+	        _classCallCheck(this, DomUpdater);
+
+	        this.node = node;
+	        this.provider = provider;
+	        this.mountedNode = null;
+	    }
+
+	    _createClass(DomUpdater, [{
+	        key: 'update',
+	        value: function update(fragment) {
+	            if (fragment.node && !this.mountedNode) {
+
+	                this.provider.onBeforeMount(this.node);
+	                _PlainDom2.default.appendChild(this.node, fragment.node);
+	                this.provider.onMount(this.node);
+	                this.mountedNode = fragment.node;
+	            } else if (!fragment.node && this.mountedNode) {
+
+	                this.provider.onBeforeUnmount(this.node);
+	                _PlainDom2.default.removeChild(this.node, this.mountedNode);
+	                this.provider.onUnmount(this.node);
+	                this.mountedNode = null;
+	            }
+	        }
+	    }]);
+
+	    return DomUpdater;
+	}();
+
 	var PlainComponent = function () {
 	    function PlainComponent(template, ProviderClass) {
 	        _classCallCheck(this, PlainComponent);
 
 	        this.providerClass = ProviderClass;
 	        this.template = template;
+	        this.id = this.constructor.getNextId();
 	        this.provider = null;
 	        this.fragment = null;
-	        this.id = this.constructor.getNextId();
 	    }
 
 	    _createClass(PlainComponent, [{
@@ -169,12 +200,9 @@
 	                var fragment = new _PlainRenderer2.default(this.template);
 	                var provider = new this.providerClass(data);
 
+	                _PlainObserver2.default.register(fragment, new DomUpdater(node, provider));
 	                _PlainObserver2.default.register(provider, fragment);
 	                _PlainObserver2.default.update(provider);
-
-	                provider.onBeforeMount(node);
-	                fragment.node && _PlainDom2.default.appendChild(node, fragment.node);
-	                provider.onMount(node);
 
 	                this.provider = provider;
 	                this.fragment = fragment;
@@ -201,15 +229,14 @@
 	        key: 'destroy',
 	        value: function destroy() {
 	            if (this.isRendered()) {
-	                this.provider.onBeforeUnmount();
-
 	                this.fragment.deleteFragmentNode();
 	                this.fragment = null;
 
-	                this.provider.onUnmount();
 	                this.provider.onDestroy();
 
+	                _PlainObserver2.default.unregister(this.fragment);
 	                _PlainObserver2.default.unregister(this.provider);
+
 	                this.provider = null;
 	            }
 
@@ -451,9 +478,38 @@
 	        }
 	    }, {
 	        key: 'removeChildren',
-	        value: function removeChildren(node) {
-	            while (node.firstChild) {
-	                node.removeChild(node.firstChild);
+	        value: function removeChildren(node, children) {
+	            if (!children) {
+	                while (node.firstChild) {
+	                    node.removeChild(node.firstChild);
+	                }
+	            } else {
+	                var list = (0, _utils.toArray)(children);
+
+	                var _iteratorNormalCompletion3 = true;
+	                var _didIteratorError3 = false;
+	                var _iteratorError3 = undefined;
+
+	                try {
+	                    for (var _iterator3 = list[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+	                        var item = _step3.value;
+
+	                        this.removeChild(node, item);
+	                    }
+	                } catch (err) {
+	                    _didIteratorError3 = true;
+	                    _iteratorError3 = err;
+	                } finally {
+	                    try {
+	                        if (!_iteratorNormalCompletion3 && _iterator3.return) {
+	                            _iterator3.return();
+	                        }
+	                    } finally {
+	                        if (_didIteratorError3) {
+	                            throw _iteratorError3;
+	                        }
+	                    }
+	                }
 	            }
 	        }
 	    }, {
@@ -482,13 +538,13 @@
 	        value: function setAttributes(node, attributes) {
 	            var list = (0, _utils.toArray)(node.attributes);
 
-	            var _iteratorNormalCompletion3 = true;
-	            var _didIteratorError3 = false;
-	            var _iteratorError3 = undefined;
+	            var _iteratorNormalCompletion4 = true;
+	            var _didIteratorError4 = false;
+	            var _iteratorError4 = undefined;
 
 	            try {
-	                for (var _iterator3 = list[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-	                    var attribute = _step3.value;
+	                for (var _iterator4 = list[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+	                    var attribute = _step4.value;
 
 	                    var name = attribute.name;
 	                    var value = attribute.value;
@@ -500,16 +556,16 @@
 	                    }
 	                }
 	            } catch (err) {
-	                _didIteratorError3 = true;
-	                _iteratorError3 = err;
+	                _didIteratorError4 = true;
+	                _iteratorError4 = err;
 	            } finally {
 	                try {
-	                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
-	                        _iterator3.return();
+	                    if (!_iteratorNormalCompletion4 && _iterator4.return) {
+	                        _iterator4.return();
 	                    }
 	                } finally {
-	                    if (_didIteratorError3) {
-	                        throw _iteratorError3;
+	                    if (_didIteratorError4) {
+	                        throw _iteratorError4;
 	                    }
 	                }
 	            }
@@ -865,11 +921,13 @@
 	                this.node = this.createFragmentNode();
 	            } else {
 	                console.time('updateFragment');
-	                this.updateFragmentNode();
+	                this.node = this.updateFragmentNode();
 	                console.timeEnd('updateFragment');
 	            }
 
 	            this.previousData = (0, _utils.copyObject)(this.data);
+
+	            _PlainObserver2.default.update(this);
 	        }
 	    }, {
 	        key: 'createFragmentFromTemplate',
@@ -1059,7 +1117,7 @@
 	                return null;
 	            }
 
-	            var node = fragment.node || this.createFragmentNode(fragment, data);
+	            var node = fragment.node || (fragment.node = this.createFragmentNode(fragment, data));
 
 	            if (null === node) {
 	                return null;
@@ -1288,7 +1346,7 @@
 	        key: 'updateChildren',
 	        value: function updateChildren(node, list, data, previousData) {
 	            var updatedNodes = [];
-	            var needUpdate = false;
+	            var updated = false;
 
 	            var _iteratorNormalCompletion4 = true;
 	            var _didIteratorError4 = false;
@@ -1298,14 +1356,17 @@
 	                for (var _iterator4 = list[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
 	                    var child = _step4.value;
 
+	                    if (child.type !== 'element') {
+	                        continue;
+	                    }
+
 	                    var currentNode = child.node;
 	                    var updatedNode = this.updateFragmentNode(child, data, previousData);
 
-	                    if (child.type === 'element' && !needUpdate) {
-	                        needUpdate = currentNode !== updatedNode;
+	                    if (currentNode !== updatedNode) {
+	                        !updated && (updated = true);
+	                        updatedNode && updatedNodes.push(updatedNode);
 	                    }
-
-	                    updatedNode && updatedNodes.push(updatedNode);
 	                }
 	            } catch (err) {
 	                _didIteratorError4 = true;
@@ -1322,7 +1383,7 @@
 	                }
 	            }
 
-	            if (needUpdate) {
+	            if (updated) {
 	                _PlainDom2.default.removeChildren(node);
 	                _PlainDom2.default.appendChildren(node, updatedNodes);
 	            }
@@ -1517,32 +1578,14 @@
 	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Test).call(this));
 
 	        _this.setData({
-	            'a': 2,
-	            'b': 1,
-	            'test-true': false,
-	            'test-false': true,
-	            'test-exists': null,
-	            'test-lt': 1,
-	            'test-lte': 1,
-	            'test-gt': 0,
-	            'test-gte': 0
+	            test: false
 	        });
 
-	        var counter = 0;
-
 	        setInterval(function () {
-
 	            var data = _this.getData();
 
 	            _this.setData({
-	                'b': data.b ? 0 : 1,
-	                'test-true': !data['test-true'],
-	                'test-false': !data['test-false'],
-	                'test-exists': data['test-exists'] === null ? '' : null,
-	                'test-lt': data['test-lt'] ? 0 : 1,
-	                'test-lte': data['test-lte'] ? 0 : 1,
-	                'test-gt': data['test-gt'] ? 0 : 1,
-	                'test-gte': data['test-gte'] ? 0 : 1
+	                test: !data.test
 	            });
 	        }, 1000);
 	        return _this;
@@ -1557,6 +1600,16 @@
 	        key: 'onMount',
 	        value: function onMount() {
 	            console.log('onMount !!!');
+	        }
+	    }, {
+	        key: 'onBeforeUnmount',
+	        value: function onBeforeUnmount() {
+	            console.log('onBeforeUnmount !!!');
+	        }
+	    }, {
+	        key: 'onUnmount',
+	        value: function onUnmount() {
+	            console.log('onUnmount !!!');
 	        }
 	    }, {
 	        key: 'onDestroy',
@@ -1574,7 +1627,7 @@
 /* 10 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\"test-example\">\n    <div expression=\"data.a + data.b == 3\">Show if expression 'data.a + data.b == 3'</div>\n    <div match=\"test-true\" eq=\"true\">Show if true</div>\n    <div match=\"test-false\" eq=\"false\">Show if false</div>\n    <div match=\"test-exists\" exists=\"true\">Show if exists</div>\n    <div match=\"test-lt\" lt=\"1\">Show if value lt 1</div>\n    <div match=\"test-lte\" lte=\"1\">Show if value lte 1</div>\n    <div match=\"test-gt\" gt=\"0\">Show if value gt 0</div>\n    <div match=\"test-gte\" gte=\"0\">Show if value gte 0</div>\n</div>\n";
+	module.exports = "<div match=\"test\" eq=\"true\">\n    <b>Content</b> <em>here</em>\n</div>\n";
 
 /***/ },
 /* 11 */

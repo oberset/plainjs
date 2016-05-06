@@ -9,6 +9,31 @@ const counter = () => {
     return () => nextValue++;
 };
 
+class DomUpdater {
+    constructor(node, provider) {
+        this.node = node;
+        this.provider = provider;
+        this.mountedNode = null;
+    }
+
+    update(fragment) {
+        if (fragment.node && !this.mountedNode) {
+
+            this.provider.onBeforeMount(this.node);
+            PlainDom.appendChild(this.node, fragment.node);
+            this.provider.onMount(this.node);
+            this.mountedNode = fragment.node;
+
+        } else if (!fragment.node && this.mountedNode) {
+
+            this.provider.onBeforeUnmount(this.node);
+            PlainDom.removeChild(this.node, this.mountedNode);
+            this.provider.onUnmount(this.node);
+            this.mountedNode = null;
+        }
+    }
+}
+
 export default class PlainComponent {
 
     static getNextId = counter();
@@ -16,9 +41,9 @@ export default class PlainComponent {
     constructor(template, ProviderClass) {
         this.providerClass = ProviderClass;
         this.template = template;
+        this.id = this.constructor.getNextId();
         this.provider = null;
         this.fragment = null;
-        this.id = this.constructor.getNextId();
     }
 
     render(node, data) {
@@ -26,12 +51,9 @@ export default class PlainComponent {
             let fragment = new PlainRenderer(this.template);
             let provider = new this.providerClass(data);
 
+            PlainObserver.register(fragment, new DomUpdater(node, provider));
             PlainObserver.register(provider, fragment);
             PlainObserver.update(provider);
-
-            provider.onBeforeMount(node);
-            fragment.node && PlainDom.appendChild(node, fragment.node);
-            provider.onMount(node);
 
             this.provider = provider;
             this.fragment = fragment;
@@ -56,15 +78,14 @@ export default class PlainComponent {
 
     destroy() {
         if (this.isRendered()) {
-            this.provider.onBeforeUnmount();
-
             this.fragment.deleteFragmentNode();
             this.fragment = null;
 
-            this.provider.onUnmount();
             this.provider.onDestroy();
 
+            PlainObserver.unregister(this.fragment);
             PlainObserver.unregister(this.provider);
+
             this.provider = null;
         }
 

@@ -134,9 +134,17 @@ export default class PlainDom {
         node.removeChild(child);
     }
 
-    static removeChildren(node) {
-        while (node.firstChild) {
-            node.removeChild(node.firstChild);
+    static removeChildren(node, children) {
+        if (!children) {
+            while (node.firstChild) {
+                node.removeChild(node.firstChild);
+            }
+        } else {
+            let list = toArray(children);
+
+            for (let item of list) {
+                this.removeChild(node, item);
+            }
         }
     }
 
