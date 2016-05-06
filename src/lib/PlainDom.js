@@ -1,9 +1,74 @@
 import { toArray, T_UNDEF } from './utils';
 
 const doc = document;
-let domParser = null;
+const reContentTypeHTML = /^\s*text\/html\s*(?:;|$)/i;
+
+let DOMParserClass = null;
+
+function createHTMLDoc(source) {
+    let htmlDoc = doc.implementation.createHTMLDocument();
+    htmlDoc.body.innerHTML = source;
+
+    return htmlDoc;
+}
+
+function getDOMParser() {
+
+    if (DOMParserClass) {
+        return new DOMParserClass();
+    }
+
+    let nativeParser = window.DOMParser;
+    let nativeHTMLParser = null;
+
+    if (nativeParser) {
+        try {
+            if ((new DOMParser()).parseFromString('', 'text/html')) {
+                nativeHTMLParser = nativeParser;
+            }
+        } catch (ex) {}
+    }
+
+    if (nativeHTMLParser) {
+        DOMParserClass = nativeHTMLParser;
+    } else if (nativeParser) {
+
+        let parseFromString = nativeParser.prototype.parseFromString;
+
+        nativeParser.prototype.parseFromString = function(source, type) {
+            if (reContentTypeHTML.test(type)) {
+                return createHTMLDoc(source);
+            } else {
+                return parseFromString.apply(this, arguments);
+            }
+        };
+
+        DOMParserClass = nativeParser;
+
+    } else {
+        DOMParserClass = function () {
+            this.parseFromString = function (source, type) {
+                if (reContentTypeHTML.test(type)) {
+                    return createHTMLDoc(source);
+                } else {
+                    throw new Error('Unknown content-type: "' + type + '"');
+                }
+            }
+        }
+    }
+
+    return new DOMParserClass();
+}
+
+function parseFromString(source) {
+    return getDOMParser().parseFromString(source, 'text/html').body;
+}
 
 export default class PlainDom {
+
+    static createDocument(source) {
+        return createHTMLDoc(source);
+    }
 
     static createDocumentFragment(source) {
         let frag = doc.createDocumentFragment();
@@ -14,12 +79,7 @@ export default class PlainDom {
             if (this.isDomNode(source)) {
                 content = source;
             } else {
-                if ('DOMParser' in window) {
-                    content = (domParser || (domParser = new DOMParser())).parseFromString(source, 'text/html').body;
-                } else {
-                    content = doc.createElement('div');
-                    content.innerHTML = source;
-                }
+                content = parseFromString(source);
             }
 
             frag.appendChild(content);

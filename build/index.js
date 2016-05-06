@@ -259,7 +259,69 @@
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var doc = document;
-	var domParser = null;
+	var reContentTypeHTML = /^\s*text\/html\s*(?:;|$)/i;
+
+	var DOMParserClass = null;
+
+	function createHTMLDoc(source) {
+	    var htmlDoc = doc.implementation.createHTMLDocument();
+	    htmlDoc.body.innerHTML = source;
+
+	    return htmlDoc;
+	}
+
+	function getDOMParser() {
+
+	    if (DOMParserClass) {
+	        return new DOMParserClass();
+	    }
+
+	    var nativeParser = window.DOMParser;
+	    var nativeHTMLParser = null;
+
+	    if (nativeParser) {
+	        try {
+	            if (new DOMParser().parseFromString('', 'text/html')) {
+	                nativeHTMLParser = nativeParser;
+	            }
+	        } catch (ex) {}
+	    }
+
+	    if (nativeHTMLParser) {
+	        DOMParserClass = nativeHTMLParser;
+	    } else if (nativeParser) {
+	        (function () {
+
+	            var parseFromString = nativeParser.prototype.parseFromString;
+
+	            nativeParser.prototype.parseFromString = function (source, type) {
+	                if (reContentTypeHTML.test(type)) {
+	                    return createHTMLDoc(source);
+	                } else {
+	                    return parseFromString.apply(this, arguments);
+	                }
+	            };
+
+	            DOMParserClass = nativeParser;
+	        })();
+	    } else {
+	        DOMParserClass = function DOMParserClass() {
+	            this.parseFromString = function (source, type) {
+	                if (reContentTypeHTML.test(type)) {
+	                    return createHTMLDoc(source);
+	                } else {
+	                    throw new Error('Unknown content-type: "' + type + '"');
+	                }
+	            };
+	        };
+	    }
+
+	    return new DOMParserClass();
+	}
+
+	function parseFromString(source) {
+	    return getDOMParser().parseFromString(source, 'text/html').body;
+	}
 
 	var PlainDom = function () {
 	    function PlainDom() {
@@ -267,6 +329,11 @@
 	    }
 
 	    _createClass(PlainDom, null, [{
+	        key: 'createDocument',
+	        value: function createDocument(source) {
+	            return createHTMLDoc(source);
+	        }
+	    }, {
 	        key: 'createDocumentFragment',
 	        value: function createDocumentFragment(source) {
 	            var frag = doc.createDocumentFragment();
@@ -277,12 +344,7 @@
 	                if (this.isDomNode(source)) {
 	                    content = source;
 	                } else {
-	                    if ('DOMParser' in window) {
-	                        content = (domParser || (domParser = new DOMParser())).parseFromString(source, 'text/html').body;
-	                    } else {
-	                        content = doc.createElement('div');
-	                        content.innerHTML = source;
-	                    }
+	                    content = parseFromString(source);
 	                }
 
 	                frag.appendChild(content);
