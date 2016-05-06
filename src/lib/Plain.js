@@ -50,6 +50,10 @@ export default class Plain {
 
     onUpdate() {}
 
+    onBeforeUnmount() {}
+
+    onUnmount() {}
+
     onDestroy() {}
 
 }

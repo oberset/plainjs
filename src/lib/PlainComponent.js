@@ -41,29 +41,31 @@ export default class PlainComponent {
     }
 
     update(newData) {
-        if (this.provider) {
+        if (this.isRendered()) {
             let provider = this.provider;
 
             provider.onBeforeUpdate(provider.getData(), newData);
             provider.setData(newData);
             provider.onUpdate(newData);
         } else {
-            throw new Error('Component provider is not defined');
+            throw new Error('Component is not rendered');
         }
 
         return this;
     }
 
     destroy() {
-        if (this.provider) {
-            this.provider.onDestroy();
-            PlainObserver.unregister(this.provider);
-            this.provider = null;
-        }
+        if (this.isRendered()) {
+            this.provider.onBeforeUnmount();
 
-        if (this.fragment) {
             this.fragment.deleteFragmentNode();
             this.fragment = null;
+
+            this.provider.onUnmount();
+            this.provider.onDestroy();
+
+            PlainObserver.unregister(this.provider);
+            this.provider = null;
         }
 
         return this;

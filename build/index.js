@@ -185,14 +185,14 @@
 	    }, {
 	        key: 'update',
 	        value: function update(newData) {
-	            if (this.provider) {
+	            if (this.isRendered()) {
 	                var provider = this.provider;
 
 	                provider.onBeforeUpdate(provider.getData(), newData);
 	                provider.setData(newData);
 	                provider.onUpdate(newData);
 	            } else {
-	                throw new Error('Component provider is not defined');
+	                throw new Error('Component is not rendered');
 	            }
 
 	            return this;
@@ -200,15 +200,17 @@
 	    }, {
 	        key: 'destroy',
 	        value: function destroy() {
-	            if (this.provider) {
-	                this.provider.onDestroy();
-	                _PlainObserver2.default.unregister(this.provider);
-	                this.provider = null;
-	            }
+	            if (this.isRendered()) {
+	                this.provider.onBeforeUnmount();
 
-	            if (this.fragment) {
 	                this.fragment.deleteFragmentNode();
 	                this.fragment = null;
+
+	                this.provider.onUnmount();
+	                this.provider.onDestroy();
+
+	                _PlainObserver2.default.unregister(this.provider);
+	                this.provider = null;
 	            }
 
 	            return this;
@@ -735,6 +737,12 @@
 	    }, {
 	        key: 'onUpdate',
 	        value: function onUpdate() {}
+	    }, {
+	        key: 'onBeforeUnmount',
+	        value: function onBeforeUnmount() {}
+	    }, {
+	        key: 'onUnmount',
+	        value: function onUnmount() {}
 	    }, {
 	        key: 'onDestroy',
 	        value: function onDestroy() {}
