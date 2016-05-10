@@ -72,9 +72,9 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	/*console.time('render');
-	PlainComponent.render('<h1 content="hello"></h1>', {hello: 'Hello World!!!'}, document.querySelector('.hello'));
-	console.timeEnd('render');*/
+	console.time('render');
+	_PlainComponent2.default.render('<h1 content="hello"></h1>', { hello: 'Hello World!!!' }, document.querySelector('.hello'));
+	console.timeEnd('render');
 
 	console.time('render');
 	_PlainComponent2.default.render(_select2.default, {
@@ -95,7 +95,10 @@
 	console.timeEnd('render');
 
 	console.time('render');
-	_PlainComponent2.default.render(_counter4.default, _counter2.default, document.querySelector('.counter'));
+	var counter = new _PlainComponent2.default(_counter4.default, _counter2.default);
+	setTimeout(function () {
+	    counter.replace(document.querySelector('.counter-elem'));
+	}, 5000);
 	console.timeEnd('render');
 
 	console.time('render');
@@ -184,31 +187,42 @@
 
 	var PlainComponent = function () {
 	    function PlainComponent(template, ProviderClass) {
+	        var live = arguments.length <= 2 || arguments[2] === undefined ? true : arguments[2];
+
 	        _classCallCheck(this, PlainComponent);
 
 	        this.providerClass = ProviderClass;
 	        this.template = template;
 	        this.id = this.constructor.getNextId();
+	        this.live = live === true;
 	        this.provider = null;
 	        this.fragment = null;
+	        this.node = null;
 	    }
 
 	    _createClass(PlainComponent, [{
 	        key: 'render',
 	        value: function render(node, data) {
 	            if (!this.isRendered()) {
-	                var fragment = new _PlainRenderer2.default(this.template);
+	                var fragment = new _PlainRenderer2.default(this.template, this.node);
 	                var provider = new this.providerClass(data);
 
 	                _PlainObserver2.default.register(fragment, new DomUpdater(node, provider));
 	                _PlainObserver2.default.register(provider, fragment);
-	                _PlainObserver2.default.update(provider);
+
+	                this.live || _PlainObserver2.default.update(provider);
 
 	                this.provider = provider;
 	                this.fragment = fragment;
 	            }
 
 	            return this;
+	        }
+	    }, {
+	        key: 'replace',
+	        value: function replace(node, data) {
+	            this.node = node;
+	            return this.render(_PlainDom2.default.getParent(node), data);
 	        }
 	    }, {
 	        key: 'update',
@@ -259,7 +273,7 @@
 	                data = providerClass;
 	                providerClass = _Plain2.default;
 	            }
-	            new PlainComponent(template, providerClass).render(node, data);
+	            new PlainComponent(template, providerClass, false).render(node, data);
 	        }
 	    }]);
 
@@ -513,6 +527,11 @@
 	            }
 	        }
 	    }, {
+	        key: 'replaceChild',
+	        value: function replaceChild(node, newChild, oldChild) {
+	            return node.replaceChild(newChild, oldChild);
+	        }
+	    }, {
 	        key: 'getChildren',
 	        value: function getChildren(node, type) {
 	            if (!type) {
@@ -573,7 +592,7 @@
 	    }, {
 	        key: 'isDomNode',
 	        value: function isDomNode(elem) {
-	            return (typeof elem === 'undefined' ? 'undefined' : _typeof(elem)) === 'object' && elem.nodeType && elem.nodeType > 0;
+	            return elem !== null && (typeof elem === 'undefined' ? 'undefined' : _typeof(elem)) === 'object' && elem.nodeType && elem.nodeType > 0;
 	        }
 	    }, {
 	        key: 'toArray',
@@ -896,12 +915,12 @@
 	var ITEMS_TO_UPDATE = 2;
 
 	var PlainRenderer = function () {
-	    function PlainRenderer(template) {
+	    function PlainRenderer(template, node) {
 	        _classCallCheck(this, PlainRenderer);
 
 	        this.template = this.createTemplateFromString(template);
+	        this.node = _PlainDom2.default.isDomNode(node) ? node : null;
 	        this.fragment = null;
-	        this.node = null;
 	        this.data = {};
 	        this.previousData = {};
 	    }
@@ -918,7 +937,17 @@
 
 	            if (null === this.fragment) {
 	                this.fragment = this.createFragmentFromTemplate();
-	                this.node = this.createFragmentNode();
+
+	                if (this.node) {
+	                    var renderedNode = this.node;
+	                    var parent = _PlainDom2.default.getParent(renderedNode);
+	                    var node = this.createFragmentNode();
+
+	                    _PlainDom2.default.replaceChild(parent, node, renderedNode);
+	                    this.node = node;
+	                } else {
+	                    this.node = this.createFragmentNode();
+	                }
 	            } else {
 	                console.time('updateFragment');
 	                this.node = this.updateFragmentNode();
@@ -1518,8 +1547,7 @@
 	        _this.counter = 0;
 
 	        _this.setData({
-	            cssClass: 'counter',
-	            counter: _this.counter++
+	            cssClass: 'counter-elem'
 	        });
 
 	        //Don't work

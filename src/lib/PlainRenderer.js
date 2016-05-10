@@ -34,10 +34,10 @@ export default class PlainRenderer {
         expression: true
     };
 
-    constructor(template) {
+    constructor(template, node) {
         this.template = this.createTemplateFromString(template);
+        this.node = PlainDom.isDomNode(node) ? node : null;
         this.fragment = null;
-        this.node = null;
         this.data = {};
         this.previousData = {};
     }
@@ -51,7 +51,17 @@ export default class PlainRenderer {
 
         if (null === this.fragment) {
             this.fragment = this.createFragmentFromTemplate();
-            this.node = this.createFragmentNode();
+
+            if (this.node) {
+                let renderedNode = this.node;
+                let parent = PlainDom.getParent(renderedNode);
+                let node = this.createFragmentNode();
+
+                PlainDom.replaceChild(parent, node, renderedNode);
+                this.node = node;
+            } else {
+                this.node = this.createFragmentNode();
+            }
         } else {
             console.time('updateFragment');
             this.node = this.updateFragmentNode();

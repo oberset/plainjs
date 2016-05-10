@@ -1,16 +1,16 @@
-import PlainComponent from './src/lib/PlainComponent';
+import { default as Psj } from './src/lib/PlainComponent';
 import Counter from './src/components/counter/counter';
 import CounterTemplate from './src/components/counter/counter.html';
 import Test from './src/components/test/test';
 import TestTemplate from './src/components/test/test.html';
 import SelectTemplate from './src/components/select/select.html';
 
-/*console.time('render');
-PlainComponent.render('<h1 content="hello"></h1>', {hello: 'Hello World!!!'}, document.querySelector('.hello'));
-console.timeEnd('render');*/
+console.time('render');
+Psj.render('<h1 content="hello"></h1>', {hello: 'Hello World!!!'}, document.querySelector('.hello'));
+console.timeEnd('render');
 
 console.time('render');
-PlainComponent.render(SelectTemplate, {
+Psj.render(SelectTemplate, {
     options: [
         {
             value: 1,
@@ -32,11 +32,14 @@ PlainComponent.render(SelectTemplate, {
 console.timeEnd('render');
 
 console.time('render');
-PlainComponent.render(CounterTemplate, Counter, document.querySelector('.counter'));
+let counter = new Psj(CounterTemplate, Counter);
+setTimeout(() => {
+    counter.replace(document.querySelector('.counter-elem'));
+}, 5000);
 console.timeEnd('render');
 
 console.time('render');
-let test = new PlainComponent(TestTemplate, Test);
+let test = new Psj(TestTemplate, Test);
 console.log(test.isRendered());
 test.render(document.querySelector('.test'));
 console.log(test.isRendered());

@@ -38,28 +38,36 @@ export default class PlainComponent {
 
     static getNextId = counter();
 
-    constructor(template, ProviderClass) {
+    constructor(template, ProviderClass, live = true) {
         this.providerClass = ProviderClass;
         this.template = template;
         this.id = this.constructor.getNextId();
+        this.live = live === true;
         this.provider = null;
         this.fragment = null;
+        this.node = null;
     }
 
     render(node, data) {
         if (!this.isRendered()) {
-            let fragment = new PlainRenderer(this.template);
+            let fragment = new PlainRenderer(this.template, this.node);
             let provider = new this.providerClass(data);
 
             PlainObserver.register(fragment, new DomUpdater(node, provider));
             PlainObserver.register(provider, fragment);
-            PlainObserver.update(provider);
+
+            this.live || PlainObserver.update(provider);
 
             this.provider = provider;
             this.fragment = fragment;
         }
 
         return this;
+    }
+
+    replace(node, data) {
+        this.node = node;
+        return this.render(PlainDom.getParent(node), data);
     }
 
     update(newData) {
@@ -105,7 +113,7 @@ export default class PlainComponent {
             data = providerClass;
             providerClass = Plain;
         }
-        new PlainComponent(template, providerClass).render(node, data);
+        new PlainComponent(template, providerClass, false).render(node, data);
     }
 
 }

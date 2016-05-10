@@ -148,6 +148,10 @@ export default class PlainDom {
         }
     }
 
+    static replaceChild(node, newChild, oldChild) {
+        return node.replaceChild(newChild, oldChild);
+    }
+
     static getChildren(node, type) {
         if (!type) {
             return toArray(node.childNodes);
@@ -182,7 +186,7 @@ export default class PlainDom {
     }
 
     static isDomNode(elem) {
-        return typeof elem === 'object' && elem.nodeType && elem.nodeType > 0;
+        return elem !== null && typeof elem === 'object' && elem.nodeType && elem.nodeType > 0;
     }
 
     static toArray(nodelist) {

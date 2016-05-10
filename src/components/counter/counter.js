@@ -8,8 +8,7 @@ export default class Counter extends Plain {
         this.counter = 0;
 
         this.setData({
-            cssClass: 'counter',
-            counter: this.counter++
+            cssClass: 'counter-elem'
         });
 
         //Don't work
