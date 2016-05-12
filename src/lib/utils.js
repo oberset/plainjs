@@ -54,6 +54,14 @@ export function toArray(list) {
     return Array.from(list);
 }
 
+export function toKeyValue(list, key, value) {
+    let obj = {};
+    for (let item of list) {
+        obj[item[key]] = item[value];
+    }
+    return obj;
+}
+
 export function isNullOrUndef(test) {
     return test === null || test === T_UNDEF;
 }

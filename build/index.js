@@ -411,7 +411,9 @@
 	                        var key = _step.value;
 
 	                        var value = attributes[key];
-	                        elem.setAttribute(key, value === _utils.T_UNDEF ? key : value);
+	                        if (value !== null) {
+	                            elem.setAttribute(key, value === _utils.T_UNDEF ? key : value);
+	                        }
 	                    }
 	                } catch (err) {
 	                    _didIteratorError = true;
@@ -548,6 +550,16 @@
 	            return node.parentNode;
 	        }
 	    }, {
+	        key: 'setAttribute',
+	        value: function setAttribute(node, name, value) {
+	            node.setAttribute(name, value);
+	        }
+	    }, {
+	        key: 'removeAttribute',
+	        value: function removeAttribute(node, name) {
+	            node.removeAttribute(name);
+	        }
+	    }, {
 	        key: 'getAttributes',
 	        value: function getAttributes(node) {
 	            return (0, _utils.toArray)(node.attributes);
@@ -568,9 +580,9 @@
 	                    var name = attribute.name;
 	                    var value = attribute.value;
 
-	                    if (_utils.T_UNDEF === attributes[name]) {
+	                    if ((0, _utils.isNullOrUndef)(value)) {
 	                        node.removeAttribute(name);
-	                    } else if (value !== attributes[name]) {
+	                    } else {
 	                        node.setAttribute(name, attributes[name]);
 	                    }
 	                }
@@ -620,6 +632,7 @@
 	exports.copyArray = copyArray;
 	exports.mergeObject = mergeObject;
 	exports.toArray = toArray;
+	exports.toKeyValue = toKeyValue;
 	exports.isNullOrUndef = isNullOrUndef;
 	var T_UNDEF = exports.T_UNDEF = void 0;
 
@@ -725,6 +738,36 @@
 
 	function toArray(list) {
 	    return Array.from(list);
+	}
+
+	function toKeyValue(list, key, value) {
+	    var obj = {};
+	    var _iteratorNormalCompletion3 = true;
+	    var _didIteratorError3 = false;
+	    var _iteratorError3 = undefined;
+
+	    try {
+	        for (var _iterator3 = list[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+	            var item = _step3.value;
+
+	            obj[item[key]] = item[value];
+	        }
+	    } catch (err) {
+	        _didIteratorError3 = true;
+	        _iteratorError3 = err;
+	    } finally {
+	        try {
+	            if (!_iteratorNormalCompletion3 && _iterator3.return) {
+	                _iterator3.return();
+	            }
+	        } finally {
+	            if (_didIteratorError3) {
+	                throw _iteratorError3;
+	            }
+	        }
+	    }
+
+	    return obj;
 	}
 
 	function isNullOrUndef(test) {
@@ -940,10 +983,9 @@
 
 	                if (this.node) {
 	                    var renderedNode = this.node;
-	                    var parent = _PlainDom2.default.getParent(renderedNode);
 	                    var node = this.createFragmentNode();
 
-	                    _PlainDom2.default.replaceChild(parent, node, renderedNode);
+	                    this.replaceNode(renderedNode, node);
 	                    this.node = node;
 	                } else {
 	                    this.node = this.createFragmentNode();
@@ -1240,6 +1282,32 @@
 	                _PlainDom2.default.removeChild(node, fragment.node);
 	                fragment.node = null;
 	            }
+	        }
+	    }, {
+	        key: 'getNodeInfo',
+	        value: function getNodeInfo(node) {
+	            switch (node.nodeType) {
+	                case Node.TEXT_NODE:
+	                    return {
+	                        name: null,
+	                        attributes: [],
+	                        content: node.nodeValue
+	                    };
+	                    break;
+
+	                case Node.ELEMENT_NODE:
+	                    return {
+	                        name: node.nodeName.toLowerCase(),
+	                        attributes: _PlainDom2.default.getAttributes(node),
+	                        content: null
+	                    };
+	                    break;
+	            }
+	        }
+	    }, {
+	        key: 'replaceNode',
+	        value: function replaceNode(source, target) {
+	            _PlainDom2.default.replaceChild(_PlainDom2.default.getParent(source), target, source);
 	        }
 	    }, {
 	        key: 'match',

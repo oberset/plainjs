@@ -1,6 +1,6 @@
 import PlainDom from './PlainDom';
 import PlainObserver from './PlainObserver';
-import {isObject, copyObject, copyArray, isNullOrUndef, T_UNDEF} from './utils';
+import {isObject, copyObject, copyArray, isNullOrUndef, toKeyValue, T_UNDEF} from './utils';
 
 const ITEMS_EQUALS = 0;
 const ITEMS_TO_DELETE = -1;
@@ -54,10 +54,9 @@ export default class PlainRenderer {
 
             if (this.node) {
                 let renderedNode = this.node;
-                let parent = PlainDom.getParent(renderedNode);
                 let node = this.createFragmentNode();
 
-                PlainDom.replaceChild(parent, node, renderedNode);
+                this.replaceNode(renderedNode, node);
                 this.node = node;
             } else {
                 this.node = this.createFragmentNode();
@@ -298,6 +297,30 @@ export default class PlainRenderer {
             PlainDom.removeChild(node, fragment.node);
             fragment.node = null;
         }
+    }
+
+    getNodeInfo(node) {
+        switch (node.nodeType) {
+            case Node.TEXT_NODE:
+                return {
+                    name: null,
+                    attributes: [],
+                    content: node.nodeValue
+                };
+            break;
+
+            case Node.ELEMENT_NODE:
+                return {
+                    name: node.nodeName.toLowerCase(),
+                    attributes: PlainDom.getAttributes(node),
+                    content: null
+                };
+            break;
+        }
+    }
+
+    replaceNode(source, target) {
+        PlainDom.replaceChild(PlainDom.getParent(source), target, source);
     }
 
     match(options, data) {

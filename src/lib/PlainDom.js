@@ -1,4 +1,4 @@
-import { toArray, T_UNDEF } from './utils';
+import { toArray, isNullOrUndef, T_UNDEF } from './utils';
 
 const doc = document;
 const reContentTypeHTML = /^\s*text\/html\s*(?:;|$)/i;
@@ -95,7 +95,9 @@ export default class PlainDom {
             let keys = Object.keys(attributes);
             for (let key of keys) {
                 let value = attributes[key];
-                elem.setAttribute(key, (value === T_UNDEF ? key : value));
+                if (value !== null) {
+                    elem.setAttribute(key, (value === T_UNDEF ? key : value));
+                }
             }
         }
 
@@ -166,6 +168,14 @@ export default class PlainDom {
         return node.parentNode;
     }
 
+    static setAttribute(node, name, value) {
+        node.setAttribute(name, value);
+    }
+
+    static removeAttribute(node, name) {
+        node.removeAttribute(name);
+    }
+
     static getAttributes(node) {
         return toArray(node.attributes);
     }
@@ -177,9 +187,9 @@ export default class PlainDom {
             let name = attribute.name;
             let value = attribute.value;
 
-            if (T_UNDEF === attributes[name]) {
+            if (isNullOrUndef(value)) {
                 node.removeAttribute(name);
-            } else if (value !== attributes[name]) {
+            } else {
                 node.setAttribute(name, attributes[name]);
             }
         }
