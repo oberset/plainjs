@@ -95,10 +95,8 @@
 	console.timeEnd('render');
 
 	console.time('render');
-	var counter = new _PlainComponent2.default(_counter4.default, _counter2.default);
-	setTimeout(function () {
-	    counter.replace(document.querySelector('.counter-elem'));
-	}, 5000);
+	var counter = new _PlainComponent2.default(_counter4.default, _counter2.default, false);
+	counter.replace(document.querySelector('.counter-elem'));
 	console.timeEnd('render');
 
 	console.time('render');
@@ -962,7 +960,7 @@
 	        _classCallCheck(this, PlainRenderer);
 
 	        this.template = this.createTemplateFromString(template);
-	        this.node = _PlainDom2.default.isDomNode(node) ? node : null;
+	        this.node = node;
 	        this.fragment = null;
 	        this.data = {};
 	        this.previousData = {};
@@ -991,9 +989,7 @@
 	                    this.node = this.createFragmentNode();
 	                }
 	            } else {
-	                console.time('updateFragment');
 	                this.node = this.updateFragmentNode();
-	                console.timeEnd('updateFragment');
 	            }
 
 	            this.previousData = (0, _utils.copyObject)(this.data);
@@ -1037,20 +1033,20 @@
 	    }, {
 	        key: 'createFragmentFromElement',
 	        value: function createFragmentFromElement(root) {
-	            var result = Object.assign({}, PlainRenderer.fragmentData);
-	            var options = {};
+	            var nodeInfo = this.getNodeInfo(root);
 
-	            var attributesIterator = _PlainDom2.default.getAttributes(root);
+	            var options = {};
 	            var attributes = {};
 	            var attributesData = {};
 	            var hasAttributesData = false;
+	            var children = [];
 
 	            var _iteratorNormalCompletion = true;
 	            var _didIteratorError = false;
 	            var _iteratorError = undefined;
 
 	            try {
-	                for (var _iterator = attributesIterator[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	                for (var _iterator = nodeInfo.attributes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 	                    var attribute = _step.value;
 
 	                    var attributeName = attribute.name.toLowerCase();
@@ -1080,15 +1076,12 @@
 	                }
 	            }
 
-	            var childrenIterator = _PlainDom2.default.getChildren(root);
-	            var children = [];
-
 	            var _iteratorNormalCompletion2 = true;
 	            var _didIteratorError2 = false;
 	            var _iteratorError2 = undefined;
 
 	            try {
-	                for (var _iterator2 = childrenIterator[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+	                for (var _iterator2 = nodeInfo.children[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
 	                    var child = _step2.value;
 
 	                    var fragment = this.createFragmentFromTemplate(child);
@@ -1109,16 +1102,16 @@
 	                }
 	            }
 
-	            result.type = 'element';
-	            result.name = root.nodeName.toLowerCase();
-	            result.attributes = attributes;
-	            result.attributesData = attributesData;
-	            result.hasAttributesData = hasAttributesData;
-	            result.options = options;
-	            result.renderedData = {};
-	            result.children = children;
-
-	            return result;
+	            return {
+	                type: 'element',
+	                name: nodeInfo.name.toLowerCase(),
+	                renderedData: {},
+	                attributes: attributes,
+	                attributesData: attributesData,
+	                hasAttributesData: hasAttributesData,
+	                options: options,
+	                children: children
+	            };
 	        }
 	    }, {
 	        key: 'createFragmentNode',
@@ -1291,6 +1284,7 @@
 	                    return {
 	                        name: null,
 	                        attributes: [],
+	                        children: [],
 	                        content: node.nodeValue
 	                    };
 	                    break;
@@ -1299,6 +1293,7 @@
 	                    return {
 	                        name: node.nodeName.toLowerCase(),
 	                        attributes: _PlainDom2.default.getAttributes(node),
+	                        children: _PlainDom2.default.getChildren(node),
 	                        content: null
 	                    };
 	                    break;
@@ -1552,18 +1547,19 @@
 	                this.addComponent(node, fragment, params);
 	            }
 	        }
+	    }, {
+	        key: 'node',
+	        get: function get() {
+	            return this._node;
+	        },
+	        set: function set(node) {
+	            this._node = _PlainDom2.default.isDomNode(node) ? node : null;
+	        }
 	    }]);
 
 	    return PlainRenderer;
 	}();
 
-	PlainRenderer.fragmentData = {
-	    name: null,
-	    attributes: null,
-	    children: null,
-	    renderedData: null,
-	    options: null
-	};
 	PlainRenderer.options = {
 	    content: true,
 	    component: true,
@@ -1615,12 +1611,9 @@
 	        _this.counter = 0;
 
 	        _this.setData({
-	            cssClass: 'counter-elem'
+	            cssClass: 'counter-elem',
+	            counter: _this.counter++
 	        });
-
-	        //Don't work
-	        var data = _this.getData();
-	        data.counter = 10000;
 
 	        setInterval(function () {
 	            _this.setData({
@@ -1639,7 +1632,7 @@
 /* 8 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\":cssClass\">\n    <span content=\"counter\"></span>\n</div>";
+	module.exports = "<div class=\":cssClass\">\n    This is counter: <span content=\"counter\"></span>\n</div>";
 
 /***/ },
 /* 9 */

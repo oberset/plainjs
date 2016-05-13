@@ -8,12 +8,9 @@ export default class Counter extends Plain {
         this.counter = 0;
 
         this.setData({
-            cssClass: 'counter-elem'
+            cssClass: 'counter-elem',
+            counter: this.counter++
         });
-
-        //Don't work
-        let data = this.getData();
-        data.counter = 10000;
 
         setInterval(() => {
             this.setData({

@@ -32,10 +32,8 @@ Psj.render(SelectTemplate, {
 console.timeEnd('render');
 
 console.time('render');
-let counter = new Psj(CounterTemplate, Counter);
-setTimeout(() => {
-    counter.replace(document.querySelector('.counter-elem'));
-}, 5000);
+let counter = new Psj(CounterTemplate, Counter, false);
+counter.replace(document.querySelector('.counter-elem'));
 console.timeEnd('render');
 
 console.time('render');

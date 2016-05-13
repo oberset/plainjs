@@ -9,14 +9,6 @@ const ITEMS_TO_UPDATE = 2;
 
 export default class PlainRenderer {
 
-    static fragmentData = {
-        name: null,
-        attributes: null,
-        children: null,
-        renderedData: null,
-        options: null
-    };
-
     static options = {
         content: true,
         component: true,
@@ -36,10 +28,18 @@ export default class PlainRenderer {
 
     constructor(template, node) {
         this.template = this.createTemplateFromString(template);
-        this.node = PlainDom.isDomNode(node) ? node : null;
+        this.node = node;
         this.fragment = null;
         this.data = {};
         this.previousData = {};
+    }
+
+    get node() {
+        return this._node;
+    }
+
+    set node(node) {
+        this._node = PlainDom.isDomNode(node) ? node : null;
     }
 
     createTemplateFromString(html) {
@@ -62,9 +62,7 @@ export default class PlainRenderer {
                 this.node = this.createFragmentNode();
             }
         } else {
-            console.time('updateFragment');
             this.node = this.updateFragmentNode();
-            console.timeEnd('updateFragment');
         }
 
         this.previousData = copyObject(this.data);
@@ -105,15 +103,15 @@ export default class PlainRenderer {
     }
 
     createFragmentFromElement(root) {
-        let result = Object.assign({}, PlainRenderer.fragmentData);
-        let options = {};
+        let nodeInfo = this.getNodeInfo(root);
 
-        let attributesIterator = PlainDom.getAttributes(root);
+        let options = {};
         let attributes = {};
         let attributesData = {};
         let hasAttributesData = false;
+        let children = [];
 
-        for (let attribute of attributesIterator) {
+        for (let attribute of nodeInfo.attributes) {
             let attributeName = attribute.name.toLowerCase();
             let attributeValue = attribute.value;
 
@@ -127,24 +125,21 @@ export default class PlainRenderer {
             }
         }
 
-        let childrenIterator = PlainDom.getChildren(root);
-        let children = [];
-
-        for (let child of childrenIterator) {
+        for (let child of nodeInfo.children) {
             let fragment = this.createFragmentFromTemplate(child);
             fragment && children.push(fragment);
         }
 
-        result.type = 'element';
-        result.name = root.nodeName.toLowerCase();
-        result.attributes = attributes;
-        result.attributesData = attributesData;
-        result.hasAttributesData = hasAttributesData;
-        result.options = options;
-        result.renderedData = {};
-        result.children = children;
-
-        return result;
+        return {
+            type: 'element',
+            name: nodeInfo.name.toLowerCase(),
+            renderedData: {},
+            attributes,
+            attributesData,
+            hasAttributesData,
+            options,
+            children
+        };
     }
 
     createFragmentNode(fragment, data) {
@@ -305,6 +300,7 @@ export default class PlainRenderer {
                 return {
                     name: null,
                     attributes: [],
+                    children: [],
                     content: node.nodeValue
                 };
             break;
@@ -313,6 +309,7 @@ export default class PlainRenderer {
                 return {
                     name: node.nodeName.toLowerCase(),
                     attributes: PlainDom.getAttributes(node),
+                    children: PlainDom.getChildren(node),
                     content: null
                 };
             break;
@@ -488,5 +485,4 @@ export default class PlainRenderer {
             this.addComponent(node, fragment, params);
         }
     }
-
 }
