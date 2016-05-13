@@ -30,6 +30,8 @@ class DomUpdater {
             PlainDom.removeChild(this.node, this.mountedNode);
             this.provider.onUnmount(this.node);
             this.mountedNode = null;
+        } else {
+            this.provider.onUpdate();
         }
     }
 }
@@ -72,15 +74,10 @@ export default class PlainComponent {
 
     update(newData) {
         if (this.isRendered()) {
-            let provider = this.provider;
-
-            provider.onBeforeUpdate(provider.getData(), newData);
-            provider.setData(newData);
-            provider.onUpdate(newData);
+            this.provider.setData(newData);
         } else {
             throw new Error('Component is not rendered');
         }
-
         return this;
     }
 

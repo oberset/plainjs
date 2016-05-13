@@ -70,10 +70,22 @@
 
 	var _select2 = _interopRequireDefault(_select);
 
+	var _checked = __webpack_require__(12);
+
+	var _checked2 = _interopRequireDefault(_checked);
+
+	var _checked3 = __webpack_require__(13);
+
+	var _checked4 = _interopRequireDefault(_checked3);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+	/*console.time('render');
+	Psj.render('<h1 content="hello"></h1>', {hello: 'Hello World!!!'}, document.querySelector('.hello'));
+	console.timeEnd('render');*/
+
 	console.time('render');
-	_PlainComponent2.default.render('<h1 content="hello"></h1>', { hello: 'Hello World!!!' }, document.querySelector('.hello'));
+	_PlainComponent2.default.render(_checked4.default, _checked2.default, document.querySelector('.checked'));
 	console.timeEnd('render');
 
 	console.time('render');
@@ -176,6 +188,8 @@
 	                _PlainDom2.default.removeChild(this.node, this.mountedNode);
 	                this.provider.onUnmount(this.node);
 	                this.mountedNode = null;
+	            } else {
+	                this.provider.onUpdate();
 	            }
 	        }
 	    }]);
@@ -226,15 +240,10 @@
 	        key: 'update',
 	        value: function update(newData) {
 	            if (this.isRendered()) {
-	                var provider = this.provider;
-
-	                provider.onBeforeUpdate(provider.getData(), newData);
-	                provider.setData(newData);
-	                provider.onUpdate(newData);
+	                this.provider.setData(newData);
 	            } else {
 	                throw new Error('Component is not rendered');
 	            }
-
 	            return this;
 	        }
 	    }, {
@@ -409,7 +418,7 @@
 	                        var key = _step.value;
 
 	                        var value = attributes[key];
-	                        if (value !== null) {
+	                        if (!(0, _utils.isNullOrUndef)(value)) {
 	                            elem.setAttribute(key, value === _utils.T_UNDEF ? key : value);
 	                        }
 	                    }
@@ -550,7 +559,7 @@
 	    }, {
 	        key: 'setAttribute',
 	        value: function setAttribute(node, name, value) {
-	            node.setAttribute(name, value);
+	            name === 'class' ? this.setClassName(node, value) : node.setAttribute(name, value);
 	        }
 	    }, {
 	        key: 'removeAttribute',
@@ -565,7 +574,7 @@
 	    }, {
 	        key: 'setAttributes',
 	        value: function setAttributes(node, attributes) {
-	            var list = (0, _utils.toArray)(node.attributes);
+	            var list = Object.keys(attributes);
 
 	            var _iteratorNormalCompletion4 = true;
 	            var _didIteratorError4 = false;
@@ -573,15 +582,22 @@
 
 	            try {
 	                for (var _iterator4 = list[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-	                    var attribute = _step4.value;
+	                    var name = _step4.value;
 
-	                    var name = attribute.name;
-	                    var value = attribute.value;
+	                    var value = attributes[name];
 
-	                    if ((0, _utils.isNullOrUndef)(value)) {
+	                    if (name === 'class') {
+	                        this.setClassName(node, value);
+	                    } else if (name === 'checked' && node.checked !== _utils.T_UNDEF) {
+	                        node.checked = !!value;
+	                    } else if (name === 'disabled' && node.disabled !== _utils.T_UNDEF) {
+	                        node.disabled = !!value;
+	                    } else if (name === 'selected' && node.nodeName === 'option') {
+	                        node.selected = !!value;
+	                    } else if ((0, _utils.isNullOrUndef)(value)) {
 	                        node.removeAttribute(name);
 	                    } else {
-	                        node.setAttribute(name, attributes[name]);
+	                        node.setAttribute(name, value);
 	                    }
 	                }
 	            } catch (err) {
@@ -598,6 +614,11 @@
 	                    }
 	                }
 	            }
+	        }
+	    }, {
+	        key: 'setClassName',
+	        value: function setClassName(node, className) {
+	            node.className = className || '';
 	        }
 	    }, {
 	        key: 'isDomNode',
@@ -1723,6 +1744,59 @@
 /***/ function(module, exports) {
 
 	module.exports = "<select for-each=\"options\" to=\"option\">\n    <option from=\"option\" match=\"selected\" eq=\"false\" value=\":value\" content=\"label\"></option>\n    <option from=\"option\" match=\"selected\" eq=\"true\" value=\":value\" content=\"label\" selected=\"selected\"></option>\n</select>";
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _Plain2 = __webpack_require__(4);
+
+	var _Plain3 = _interopRequireDefault(_Plain2);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var Checked = function (_Plain) {
+	    _inherits(Checked, _Plain);
+
+	    function Checked() {
+	        _classCallCheck(this, Checked);
+
+	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Checked).call(this));
+
+	        setInterval(function () {
+	            var data = _this.getData();
+
+	            _this.setData({
+	                checked: !data.checked,
+	                disabled: !data.disabled,
+	                className: data.className ? '' : 'input-elem'
+	            });
+	        }, 1000);
+	        return _this;
+	    }
+
+	    return Checked;
+	}(_Plain3.default);
+
+	exports.default = Checked;
+
+/***/ },
+/* 13 */
+/***/ function(module, exports) {
+
+	module.exports = "<div>\n    <input type=\"checkbox\" checked=\":checked\" disabled=\":disabled\" class=\":className\">\n</div>";
 
 /***/ }
 /******/ ]);

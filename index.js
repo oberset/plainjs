@@ -4,9 +4,15 @@ import CounterTemplate from './src/components/counter/counter.html';
 import Test from './src/components/test/test';
 import TestTemplate from './src/components/test/test.html';
 import SelectTemplate from './src/components/select/select.html';
+import Checked from './src/components/checked/checked';
+import CheckedTemplate from './src/components/checked/checked.html';
+
+/*console.time('render');
+Psj.render('<h1 content="hello"></h1>', {hello: 'Hello World!!!'}, document.querySelector('.hello'));
+console.timeEnd('render');*/
 
 console.time('render');
-Psj.render('<h1 content="hello"></h1>', {hello: 'Hello World!!!'}, document.querySelector('.hello'));
+Psj.render(CheckedTemplate, Checked, document.querySelector('.checked'));
 console.timeEnd('render');
 
 console.time('render');

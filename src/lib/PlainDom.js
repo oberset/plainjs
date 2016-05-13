@@ -95,7 +95,7 @@ export default class PlainDom {
             let keys = Object.keys(attributes);
             for (let key of keys) {
                 let value = attributes[key];
-                if (value !== null) {
+                if (!isNullOrUndef(value)) {
                     elem.setAttribute(key, (value === T_UNDEF ? key : value));
                 }
             }
@@ -169,7 +169,7 @@ export default class PlainDom {
     }
 
     static setAttribute(node, name, value) {
-        node.setAttribute(name, value);
+        name === 'class' ? this.setClassName(node, value) : node.setAttribute(name, value);
     }
 
     static removeAttribute(node, name) {
@@ -181,18 +181,33 @@ export default class PlainDom {
     }
 
     static setAttributes(node, attributes) {
-        let list = toArray(node.attributes);
+        let list = Object.keys(attributes);
 
-        for (let attribute of list) {
-            let name = attribute.name;
-            let value = attribute.value;
+        for (let name of list) {
+            let value = attributes[name];
 
-            if (isNullOrUndef(value)) {
+            if (name === 'class') {
+                this.setClassName(node, value);
+
+            } else if (name === 'checked' && node.checked !== T_UNDEF) {
+                node.checked = !!value;
+
+            } else if (name === 'disabled' && node.disabled !== T_UNDEF) {
+                node.disabled = !!value;
+
+            } else if (name === 'selected' && node.nodeName === 'option') {
+                node.selected = !!value;
+
+            } else if (isNullOrUndef(value)) {
                 node.removeAttribute(name);
             } else {
-                node.setAttribute(name, attributes[name]);
+                node.setAttribute(name, value);
             }
         }
+    }
+
+    static setClassName(node, className) {
+        node.className = className || '';
     }
 
     static isDomNode(elem) {
