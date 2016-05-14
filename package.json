@@ -1,6 +1,6 @@
 {
   "name": "plainjs",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Простой и быстрый Javascript фреймворк уровня представления (View)",
   "main": "index.js",
   "repository": {
