@@ -116,7 +116,7 @@ export default class PlainRenderer {
             let attributeValue = attribute.value;
 
             if (attributeValue.indexOf(':') === 0) {
-                attributesData[attributeName] = attributeValue;
+                attributesData[attributeName] = attributeValue.substring(1);
                 !hasAttributesData && (hasAttributesData = true);
             } else if (PlainRenderer.options[attributeName]) {
                 options[attributeName] = attributeValue;
@@ -222,8 +222,8 @@ export default class PlainRenderer {
             return (fragment.node = null);
         }
 
-        this.setAttributesData(fragment, data);
-        PlainDom.setAttributes(node, fragment.attributes);
+        let updatedAttributes = this.getUpdatedAttributesData(fragment, data, previousData);
+        updatedAttributes && PlainDom.setAttributes(node, updatedAttributes);
 
         options.content && this.updateContent(node, fragment, data[options.content]);
         options.component && this.updateComponent(node, fragment, data[options.component]);
@@ -407,9 +407,31 @@ export default class PlainRenderer {
             let attributes = Object.keys(fragment.attributesData);
             for (let key of attributes) {
                 let value = fragment.attributesData[key];
-                fragment.attributes[key] = data[value.substring(1)];
+                fragment.attributes[key] = data[value];
             }
         }
+    }
+
+    getUpdatedAttributesData(fragment, data, previousData) {
+        let updated = null;
+
+        if (fragment.hasAttributesData) {
+            let attributes = Object.keys(fragment.attributesData);
+            if (attributes.length) {
+                updated = {};
+
+                for (let key of attributes) {
+                    let value = fragment.attributesData[key];
+                    if (data[value] !== previousData[value]) {
+                        updated[key] = data[value];
+                    }
+                }
+
+                Object.assign(fragment.attributes, updated);
+            }
+        }
+
+        return updated;
     }
 
     addChildren(node, data, fragmentChildren) {
