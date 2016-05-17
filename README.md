@@ -33,7 +33,7 @@ Pjs.render(CheckboxTemplate, Checkbox, document.querySelector('.container-checkb
 </div>
 ```
 
-Код класса */components/checkbox/checkbox.js*:
+Код класса обработчика */components/checkbox/checkbox.js*:
 ```javascript
 import { Plain } from 'plainjs';
 import UI from 'plainjs/ui';
@@ -82,9 +82,66 @@ export { Checkbox, template as CheckboxTemplate };
 
 **При обновлении данных Plainjs не перерисовывает весь шаблон целиком, а обновляет DOM только у измененных фрагментов.**
 
+Пример компонента, который меняет содержимое в зависимости от статуса загрузки (ожидание результата выполнения асинхронного кода):
 
+Код шаблона */components/loader/loader.html*:
+```html
+<div class="loader">
+    <div class="content">
+        <div match="status" eq="0">Кликните для начала загрузки.</div>
+        <div match="status" eq="1">Идет загрузка...</div>
+        <div match="status" eq="2">Загрузка завершена!!!</div>
+    </div>
+    <button>Click</button>
+</div>
+```
 
+Код класса обработчика */components/loader/loader.js*:
+```javascript
+import { Plain } from 'plainjs';
+import UI from 'plainjs/ui';
+import template from './loader.html';
 
+class Loader extends Plain {
+    constructor() {
+        super();
 
+        // установим начальное состояние
+        this.setData({
+            status: 0
+        });
+    }
 
+    onMount(node) {
+        this.ui = UI(node, {
+           button: 'button'
+        });
+
+        this.ui.button[0].addEventListener('click', (e) => {
+            // если еще не производили загрузку
+            if (this.getData().status < 1) {
+                this.setData({ status: 1 });
+
+                // эмуляция асинхронного вызова
+                setTimeout(() => {
+                    this.setData({ status: 2 });
+                }, 2500);
+            }
+        });
+    }
+
+    onUnmount() {
+        this.ui = null;
+    }
+}
+
+export { Loader, template as LoaderTemplate }
+```
+
+Рендеринг компонента:
+```javascript
+import { Loader, LoaderTemplate } from './components/loader/loader';
+
+Pjs.render(LoaderTemplate, Loader, document.querySelector('.container-loader'));
+```
 
