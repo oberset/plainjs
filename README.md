@@ -140,8 +140,108 @@ export { Loader, template as LoaderTemplate }
 
 Рендеринг компонента:
 ```javascript
+import { PlainComponent as Pjs } from 'plainjs';
 import { Loader, LoaderTemplate } from './components/loader/loader';
 
 Pjs.render(LoaderTemplate, Loader, document.querySelector('.container-loader'));
 ```
 
+Еще один пример: форма регистрации, в которой при вводе данных в поле ID нужно блокировать поля first-name и last-name.
+
+Код шаблона */components/input/input.html*:
+```html
+<div class=":className">
+    <div from="id">
+        <label for="id" content="label">: </label>
+        <input id="id" name="id" type="text" size="20" placeholder=":placeholder" />
+    </div>
+    <div from="first-name">
+        <label for="first-name" content="label">: </label>
+        <input id="first-name" name="first-name" type="text" disabled=":disabled" size="20" placeholder=":placeholder" />
+    </div>
+    <div from="last-name">
+        <label for="last-name" content="label">: </label>
+        <input id="last-name" name="last-name" type="text" disabled=":disabled" size="20" placeholder=":placeholder" />
+    </div>
+</div>
+```
+
+Код класса обработчика */components/input/input.js*:
+```javascript
+import { Plain } from 'plainjs';
+import UI from 'plainjs/ui';
+import template from './input.html';
+
+class Input extends Plain {
+
+   constructor() {
+        super();
+
+        // начальное состояние (укажем CSS-класс и параметры полей)
+        this.setData({
+            className: 'input',
+            id: {
+                label: 'ID',
+                placeholder: 'input id',
+                disabled: null
+            },
+            'first-name': {
+                label: 'First name',
+                placeholder: 'input first name',
+                disabled: null
+            },
+            'last-name': {
+                label: 'Last name',
+                placeholder: 'input last name',
+                disabled: null
+            }
+        });
+
+        // какие поля нужно блокировать
+        this.disabledFields = ['first-name', 'last-name'];
+        this.disabled = false;
+    }
+
+    updateFields() {
+        let changes = {};
+
+        this.disabledFields.map(field => {
+            changes[field] = { disabled: this.disabled };
+        });
+
+        this.setData(changes);
+    }
+
+    onMount(node) {
+        this.ui = UI(node, {
+            inputId: '#id'
+        });
+
+        this.ui.inputId[0].addEventListener('input', (e) => {
+            let val = e.currentTarget.value;
+
+            if (val && !this.disabled) {
+                this.updateFields(this.disabled = true);
+
+            } else if (!val && this.disabled) {
+                this.updateFields(this.disabled = false);
+            }
+        });
+    }
+
+    onUnmount() {
+        this.ui = null;
+        this.disabled = false;
+    }
+}
+
+export { Input, template as InputTemplate };
+```
+
+Рендеринг компонента:
+```javascript
+import { PlainComponent as Pjs } from 'plainjs';
+import { Input, InputTemplate } from './components/input/input';
+
+Pjs.render(InputTemplate, Input, document.querySelector('.container-input'));
+```
