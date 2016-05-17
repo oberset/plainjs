@@ -80,6 +80,8 @@ class Checkbox extends Plain {
 export { Checkbox, template as CheckboxTemplate };
 ```
 
+**При обновлении данных Plainjs не перерисовывает весь шаблон целиком, а обновляет DOM только у измененных фрагментов.**
+
 
 
 
