@@ -14,7 +14,7 @@ export default function ui(node, uiMap) {
     let keys = Object.keys(uiMap);
 
     for (let key of keys) {
-        ui[key] = document.querySelectorAll(uiMap[key]);
+        ui[key] = node.querySelectorAll(uiMap[key]);
     }
 
     return ui;
