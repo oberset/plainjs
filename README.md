@@ -82,6 +82,8 @@ export { Checkbox, template as CheckboxTemplate };
 
 **При обновлении данных Plainjs не перерисовывает весь шаблон целиком, а обновляет DOM только у измененных фрагментов.**
 
+##Примеры работы
+
 Пример компонента, который меняет содержимое в зависимости от статуса загрузки (ожидание результата выполнения асинхронного кода):
 
 Код шаблона */components/loader/loader.html*:
@@ -245,3 +247,69 @@ import { Input, InputTemplate } from './components/input/input';
 
 Pjs.render(InputTemplate, Input, document.querySelector('.container-input'));
 ```
+
+Использование циклов в шаблоне: нарисуем select, при выборе значения из списка будем выводить его в заголовок.
+
+Код шаблона:
+```html
+<div class="select">
+    <h3 content="selected"></h3>
+    <select for-each="options" to="option">
+        <option from="option" value=":value" content="label"></option>
+    </select>
+</div>
+```
+
+Код обработчика:
+```javascript
+import { Plain } from 'plainjs';
+import UI from 'plainjs/ui';
+import template from './select.html';
+
+class Select extends Plain {
+    constructor() {
+        super();
+
+        this.options = [
+            {value: 1, label: 'One'},
+            {value: 2, label: 'Two'},
+            {value: 3, label: 'Three'},
+            {value: 4, label: 'Four'},
+            {value: 5, label: 'Five'}
+        ];
+
+        // установим начальное состояние
+        this.setData({
+            selected: this.options[0].label,
+            options: this.options
+        });
+    }
+
+    onMount(node) {
+        this.ui = UI(node, { select: 'select'});
+
+        this.ui.select[0].addEventListener('change', (e) => {
+            // меняем содержимое заголовка
+            this.setData({
+                selected: this.options[e.currentTarget.selectedIndex].label
+            });
+        });
+    }
+
+    onUnmount() {
+        this.ui = null;
+    }
+}
+
+export { Select, template as SelectTemplate }
+```
+
+Рендеринг компонента:
+```javascript
+import { PlainComponent as Pjs } from 'plainjs';
+import { Select, SelectTemplate } from './components/select/select';
+
+Pjs.render(SelectTemplate, Select, document.querySelector('.container-select'));
+```
+
+
