@@ -16,6 +16,11 @@ export default class Plain {
             },
             set: (data) => {
                 isNullOrUndef(data) && (data = {});
+
+                if (this.constructor.dataTypes) {
+                    this.convertTypes(data, this.constructor.dataTypes);
+                }
+
                 let copy = copyObject(this.validate(data));
                 mergeObject(copy, state);
             }
@@ -23,6 +28,40 @@ export default class Plain {
 
         storage.set(this, state);
         this.data = data;
+    }
+
+    convertTypes(data, types) {
+        let keys = Object.keys(types);
+
+        for (let key of keys) {
+            data[key] = this.convertType(data[key], types[key]);
+        }
+    }
+
+    convertType(value, type) {
+        switch (type) {
+            case 'string':
+                !value && (value = '');
+            break;
+
+            case 'object':
+                !isObject(value) && (value = {});
+            break;
+
+            case 'number':
+                value = parseFloat(value);
+            break;
+
+            case 'int':
+                value = parseInt(value, 10);
+            break;
+
+            case 'array':
+                !Array.isArray(value) && (value = []);
+            break;
+        }
+
+        return value;
     }
 
     validate(data) {
