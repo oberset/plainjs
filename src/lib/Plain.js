@@ -31,11 +31,7 @@ export default class Plain {
     }
 
     convertTypes(data, types) {
-        let keys = Object.keys(types);
-
-        for (let key of keys) {
-            data[key] = this.convertType(data[key], types[key]);
-        }
+        Object.keys(types).map(key => data[key] = this.convertType(data[key], types[key]));
     }
 
     convertType(value, type) {
@@ -54,6 +50,10 @@ export default class Plain {
 
             case 'int':
                 value = parseInt(value, 10);
+            break;
+
+            case 'boolean':
+                value = !!value;
             break;
 
             case 'array':
