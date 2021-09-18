@@ -206,11 +206,9 @@ class Input extends Plain {
 
     updateFields() {
         const changes = {};
+        const { disabled } = this;
 
-        this.disabledFields.map(field => {
-            changes[field] = { disabled: this.disabled };
-        });
-
+        this.disabledFields.forEach(field => (changes[field] = { disabled }));
         this.setData(changes);
     }
 
