@@ -311,6 +311,3 @@ import { Select, SelectTemplate } from './components/select/select';
 
 Pjs.render(SelectTemplate, Select, document.querySelector('.container-select'));
 ```
-
-Читайте более подробно о Javascript и разработке интерфейсов: https://zen.yandex.ru/id/5ea4a76a7c806053df5029a2
-
