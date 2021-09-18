@@ -205,7 +205,7 @@ class Input extends Plain {
     }
 
     updateFields() {
-        let changes = {};
+        const changes = {};
 
         this.disabledFields.map(field => {
             changes[field] = { disabled: this.disabled };
@@ -220,13 +220,15 @@ class Input extends Plain {
         });
 
         this.ui.inputId[0].addEventListener('input', (e) => {
-            let val = e.currentTarget.value;
+            const val = e.currentTarget.value;
 
             if (val && !this.disabled) {
-                this.updateFields(this.disabled = true);
+                this.disabled = true;
+                this.updateFields();
 
             } else if (!val && this.disabled) {
-                this.updateFields(this.disabled = false);
+                this.disabled = false;
+                this.updateFields();
             }
         });
     }
